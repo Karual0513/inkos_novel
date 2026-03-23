@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Server } from "node:http";
 import { StateManager } from "@actalk/inkos-core";
 import { collectCommandMetadata, createProgram, type CommandMetadata } from "@actalk/inkos/program";
 import {
@@ -11,6 +12,7 @@ import {
   saveChapterDocument,
   type ChapterSavePayload,
 } from "./chapter-documents.js";
+import { initializeProjectAt } from "./project-init.js";
 
 interface ProjectContextInfo {
   readonly relativePath: string;
@@ -26,92 +28,121 @@ interface ExecutionPayload {
   readonly options?: Record<string, string | boolean>;
 }
 
+interface ProjectCreatePayload {
+  readonly targetPath?: string;
+}
+
 interface ChapterRequestPayload extends ChapterSavePayload {
   readonly contextPath?: string;
 }
 
 const runtimeDir = dirname(fileURLToPath(import.meta.url));
-const publicDir = resolve(runtimeDir, "public");
-const workspaceRoot = resolve(runtimeDir, "../../..");
-const cliEntry = resolve(workspaceRoot, "packages/cli/dist/index.js");
 const host = "127.0.0.1";
 const port = parseInt(process.env.INKOS_STUDIO_PORT ?? "3210", 10);
+
+export interface StudioServerOptions {
+  readonly publicDir?: string;
+  readonly workspaceRoot?: string;
+  readonly cliEntry?: string;
+}
+
+const defaultWorkspaceRoot = resolve(runtimeDir, "../../..");
+const defaultPublicDir = resolve(runtimeDir, "public");
+const defaultCliEntry = resolve(defaultWorkspaceRoot, "packages/cli/dist/index.js");
 
 const commandTree = collectCommandMetadata(createProgram());
 const runnableCommandIndex = buildRunnableCommandIndex(commandTree);
 
-const server = createServer(async (request, response) => {
-  try {
-    const url = new URL(request.url ?? "/", `http://${request.headers.host ?? `${host}:${port}`}`);
+export function createStudioServer(options: StudioServerOptions = {}): Server {
+  const workspaceRoot = options.workspaceRoot ?? defaultWorkspaceRoot;
+  const publicDir = options.publicDir ?? defaultPublicDir;
+  const cliEntry = options.cliEntry ?? defaultCliEntry;
 
-    if (request.method === "GET" && url.pathname === "/api/meta") {
-      const contexts = await listProjectContexts();
-      return json(response, 200, {
-        workspaceRoot,
-        cliBuilt: await exists(cliEntry),
-        contexts,
-        commands: commandTree,
-      });
-    }
+  return createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url ?? "/", `http://${request.headers.host ?? `${host}:${port}`}`);
 
-    if (request.method === "GET" && url.pathname === "/api/dashboard") {
-      const contextRoot = resolveContextRoot(url.searchParams.get("context") ?? undefined);
-      return json(response, 200, await readDashboard(contextRoot));
-    }
-
-    if (request.method === "GET" && url.pathname === "/api/chapters") {
-      const contextRoot = resolveContextRoot(url.searchParams.get("context") ?? undefined);
-      const bookId = url.searchParams.get("bookId");
-      if (!bookId) {
-        throw new Error("Missing required query parameter: bookId");
+      if (request.method === "GET" && url.pathname === "/api/meta") {
+        const contexts = await listProjectContexts(workspaceRoot);
+        return json(response, 200, {
+          workspaceRoot,
+          cliBuilt: await exists(cliEntry),
+          contexts,
+          pathSuggestions: await listPathSuggestions(workspaceRoot, 3),
+          commands: commandTree,
+        });
       }
-      return json(response, 200, await readBookChapters(contextRoot, bookId));
-    }
 
-    if (request.method === "GET" && url.pathname === "/api/chapter") {
-      const contextRoot = resolveContextRoot(url.searchParams.get("context") ?? undefined);
-      const bookId = url.searchParams.get("bookId");
-      const chapter = parseInt(url.searchParams.get("chapter") ?? "", 10);
-      if (!bookId) {
-        throw new Error("Missing required query parameter: bookId");
+      if (request.method === "GET" && url.pathname === "/api/dashboard") {
+        const contextRoot = resolveContextRoot(workspaceRoot, url.searchParams.get("context") ?? undefined);
+        return json(response, 200, await readDashboard(workspaceRoot, contextRoot));
       }
-      if (!Number.isInteger(chapter) || chapter < 1) {
-        throw new Error("Missing or invalid query parameter: chapter");
+
+      if (request.method === "GET" && url.pathname === "/api/chapters") {
+        const contextRoot = resolveContextRoot(workspaceRoot, url.searchParams.get("context") ?? undefined);
+        const bookId = url.searchParams.get("bookId");
+        if (!bookId) {
+          throw new Error("Missing required query parameter: bookId");
+        }
+        return json(response, 200, await readBookChapters(contextRoot, bookId));
       }
-      return json(response, 200, await readChapterDocument(contextRoot, bookId, chapter));
+
+      if (request.method === "GET" && url.pathname === "/api/chapter") {
+        const contextRoot = resolveContextRoot(workspaceRoot, url.searchParams.get("context") ?? undefined);
+        const bookId = url.searchParams.get("bookId");
+        const chapter = parseInt(url.searchParams.get("chapter") ?? "", 10);
+        if (!bookId) {
+          throw new Error("Missing required query parameter: bookId");
+        }
+        if (!Number.isInteger(chapter) || chapter < 1) {
+          throw new Error("Missing or invalid query parameter: chapter");
+        }
+        return json(response, 200, await readChapterDocument(contextRoot, bookId, chapter));
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/chapter") {
+        const payload = (await readJsonBody(request)) as ChapterRequestPayload;
+        return json(response, 200, await saveChapterDocument(resolveContextRoot(workspaceRoot, payload.contextPath), payload));
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/execute") {
+        const payload = (await readJsonBody(request)) as ExecutionPayload;
+        return json(response, 200, await executeCommand(workspaceRoot, cliEntry, payload));
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/projects") {
+        const payload = (await readJsonBody(request)) as ProjectCreatePayload;
+        return json(response, 200, await createProject(workspaceRoot, payload));
+      }
+
+      if (request.method === "GET") {
+        return serveStaticAsset(publicDir, url.pathname, response);
+      }
+
+      return json(response, 405, { error: `Unsupported method: ${request.method}` });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return json(response, 500, { error: message });
     }
+  });
+}
 
-    if (request.method === "POST" && url.pathname === "/api/chapter") {
-      const payload = (await readJsonBody(request)) as ChapterRequestPayload;
-      return json(response, 200, await saveChapterDocument(resolveContextRoot(payload.contextPath), payload));
-    }
+export async function startStudioServer(server = createStudioServer()): Promise<Server> {
+  await new Promise<void>((resolve) => {
+    server.listen(port, host, () => resolve());
+  });
 
-    if (request.method === "POST" && url.pathname === "/api/execute") {
-      const payload = (await readJsonBody(request)) as ExecutionPayload;
-      return json(response, 200, await executeCommand(payload));
-    }
-
-    if (request.method === "GET") {
-      return serveStaticAsset(url.pathname, response);
-    }
-
-    return json(response, 405, { error: `Unsupported method: ${request.method}` });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return json(response, 500, { error: message });
-  }
-});
-
-server.listen(port, host, async () => {
-  const contexts = await listProjectContexts();
+  const contexts = await listProjectContexts(defaultWorkspaceRoot);
   const defaultContext = contexts.find((context) => context.isDefault);
 
   process.stdout.write(`InkOS Studio running at http://${host}:${port}\n`);
-  process.stdout.write(`Workspace root: ${workspaceRoot}\n`);
+  process.stdout.write(`Workspace root: ${defaultWorkspaceRoot}\n`);
   if (defaultContext) {
     process.stdout.write(`Default project context: ${defaultContext.label}\n`);
   }
-});
+
+  return server;
+}
 
 function buildRunnableCommandIndex(commands: ReadonlyArray<CommandMetadata>): ReadonlyMap<string, CommandMetadata> {
   const entries: Array<readonly [string, CommandMetadata]> = [];
@@ -132,10 +163,10 @@ function buildRunnableCommandIndex(commands: ReadonlyArray<CommandMetadata>): Re
   return new Map(entries);
 }
 
-async function listProjectContexts(): Promise<ReadonlyArray<ProjectContextInfo>> {
+async function listProjectContexts(workspaceRoot: string): Promise<ReadonlyArray<ProjectContextInfo>> {
   const discovered = new Set<string>();
   const contexts: ProjectContextInfo[] = [];
-  const defaultRelativePath = await pickDefaultContext();
+  const defaultRelativePath = await pickDefaultContext(workspaceRoot);
 
   const registerContext = async (relativePath: string, label: string): Promise<void> => {
     const normalized = normalizeRelativePath(relativePath);
@@ -167,7 +198,7 @@ async function listProjectContexts(): Promise<ReadonlyArray<ProjectContextInfo>>
   });
 }
 
-async function pickDefaultContext(): Promise<string> {
+async function pickDefaultContext(workspaceRoot: string): Promise<string> {
   if (await exists(join(workspaceRoot, "inkos.json"))) {
     return ".";
   }
@@ -205,7 +236,32 @@ async function findProjectDirs(root: string, depth: number): Promise<ReadonlyArr
   return found;
 }
 
-async function readDashboard(contextRoot: string): Promise<Record<string, unknown>> {
+async function listPathSuggestions(root: string, depth: number): Promise<ReadonlyArray<string>> {
+  const suggestions = new Set<string>(["."]);
+  const ignored = new Set([".git", "node_modules", "dist"]);
+
+  const visit = async (currentDir: string, currentDepth: number): Promise<void> => {
+    if (currentDepth >= depth) {
+      return;
+    }
+
+    const entries = await readdir(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || ignored.has(entry.name)) {
+        continue;
+      }
+      const absolutePath = join(currentDir, entry.name);
+      const relativePath = normalizeRelativePath(relative(root, absolutePath) || ".");
+      suggestions.add(relativePath);
+      await visit(absolutePath, currentDepth + 1);
+    }
+  };
+
+  await visit(root, 0);
+  return [...suggestions].sort((left, right) => left.localeCompare(right));
+}
+
+async function readDashboard(workspaceRoot: string, contextRoot: string): Promise<Record<string, unknown>> {
   const initialized = await exists(join(contextRoot, "inkos.json"));
   if (!initialized) {
     return {
@@ -281,7 +337,7 @@ async function readDashboard(contextRoot: string): Promise<Record<string, unknow
   };
 }
 
-async function executeCommand(payload: ExecutionPayload): Promise<Record<string, unknown>> {
+async function executeCommand(workspaceRoot: string, cliEntry: string, payload: ExecutionPayload): Promise<Record<string, unknown>> {
   const command = runnableCommandIndex.get(payload.commandPath);
   if (!command) {
     throw new Error(`Unknown command path: ${payload.commandPath}`);
@@ -291,7 +347,7 @@ async function executeCommand(payload: ExecutionPayload): Promise<Record<string,
     throw new Error("CLI build output not found. Run 'pnpm --filter @actalk/inkos build' first.");
   }
 
-  const contextRoot = resolveContextRoot(payload.contextPath);
+  const contextRoot = resolveContextRoot(workspaceRoot, payload.contextPath);
   const argv = buildCommandArguments(command, payload);
   const result = await spawnProcess(process.execPath, [cliEntry, ...argv], contextRoot);
   const stdout = result.stdout.trim();
@@ -306,6 +362,27 @@ async function executeCommand(payload: ExecutionPayload): Promise<Record<string,
     stdout,
     stderr,
     json: tryParseJson(stdout),
+  };
+}
+
+async function createProject(workspaceRoot: string, payload: ProjectCreatePayload): Promise<Record<string, unknown>> {
+  const targetPath = normalizeProjectTargetPath(payload.targetPath);
+  const projectRoot = resolveContextRoot(workspaceRoot, targetPath);
+
+  if (await exists(join(projectRoot, "inkos.json"))) {
+    throw new Error(`Target path already contains an InkOS project: ${targetPath}`);
+  }
+
+  const initialized = await initializeProjectAt(projectRoot);
+  const contexts = await listProjectContexts(workspaceRoot);
+
+  return {
+    ok: true,
+    createdContext: normalizeRelativePath(relative(workspaceRoot, projectRoot) || "."),
+    projectName: initialized.projectName,
+    projectPath: normalizeRelativePath(relative(workspaceRoot, projectRoot) || "."),
+    contexts,
+    pathSuggestions: await listPathSuggestions(workspaceRoot, 3),
   };
 }
 
@@ -408,7 +485,7 @@ function tryParseJson(text: string): unknown {
   }
 }
 
-function resolveContextRoot(relativePath?: string | null): string {
+function resolveContextRoot(workspaceRoot: string, relativePath?: string | null): string {
   const target = normalizeRelativePath(relativePath ?? ".");
   const absolutePath = resolve(workspaceRoot, target);
   const delta = relative(workspaceRoot, absolutePath).replace(/\\/g, "/");
@@ -428,7 +505,15 @@ function normalizeRelativePath(relativePath: string): string {
   return relativePath === "" ? "." : relativePath.replace(/\\/g, "/");
 }
 
-async function serveStaticAsset(pathname: string, response: import("node:http").ServerResponse): Promise<void> {
+function normalizeProjectTargetPath(targetPath?: string): string {
+  const normalized = normalizeRelativePath(String(targetPath ?? "").trim());
+  if (!normalized || normalized === ".") {
+    throw new Error("Missing required field: targetPath");
+  }
+  return normalized.replace(/^\.\//, "");
+}
+
+async function serveStaticAsset(publicDir: string, pathname: string, response: import("node:http").ServerResponse): Promise<void> {
   const normalizedPath = pathname === "/" ? "/index.html" : pathname;
   const assetPath = resolve(publicDir, `.${normalizedPath}`);
   const relativeAssetPath = relative(publicDir, assetPath);
@@ -496,4 +581,10 @@ async function exists(targetPath: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+const isMainModule = process.argv[1] ? resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+
+if (isMainModule) {
+  await startStudioServer();
 }

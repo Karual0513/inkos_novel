@@ -1,0 +1,1 @@
+{"version":3,"file":"chapter-splitter.d.ts","sourceRoot":"","sources":["../../src/utils/chapter-splitter.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,YAAY;IAC3B,QAAQ,CAAC,KAAK,EAAE,MAAM,CAAC;IACvB,QAAQ,CAAC,OAAO,EAAE,MAAM,CAAC;CAC1B;AAED;;;;;;;;;GASG;AACH,wBAAgB,aAAa,CAC3B,IAAI,EAAE,MAAM,EACZ,OAAO,CAAC,EAAE,MAAM,GACf,aAAa,CAAC,YAAY,CAAC,CAsC7B"}
