@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "dev": "node ./scripts/build.mjs && node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"No tests for @actalk/inkos-web\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@actalk/inkos": "workspace:*",
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.4"
   }
 }

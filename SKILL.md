@@ -1,6 +1,6 @@
 ---
 name: inkos
-description: Autonomous novel writing CLI agent - use for creative fiction writing, novel generation, style imitation, chapter continuation, and AIGC detection. Supports Chinese web novel genres (xuanhuan, xianxia, urban, horror, other) with multi-agent pipeline and advanced auditing.
+description: Autonomous novel writing CLI agent - use for creative fiction writing, novel generation, style imitation, chapter continuation, and AIGC detection. Supports Chinese web novel genres (rebirth, system, onlinegame, apocalypse, interstellar, xuanhuan, xianxia, urban, horror, other) with multi-agent pipeline and advanced auditing.
 version: 1.0.0
 metadata: { "openclaw": { "emoji": "📖", "requires": { "bins": ["inkos", "node"], "env": [] }, "primaryEnv": "", "homepage": "https://github.com/Narcooo/inkos", "install": [{ "id": "npm", "kind": "node", "package": "@actalk/inkos", "label": "Install InkOS (npm)" }] } }
 ---
@@ -46,7 +46,7 @@ inkos status
    ```bash
    inkos book create --title "My Novel Title" --genre xuanhuan --chapter-words 3000
    ```
-   - Genres: `xuanhuan` (cultivation), `xianxia` (immortal), `urban` (city), `horror`, `other`
+   - Genres: `rebirth` (second-chance), `system`, `onlinegame`, `apocalypse`, `interstellar`, `xuanhuan` (cultivation), `xianxia` (immortal), `urban` (city), `horror`, `other`
    - Returns a `book-id` for all subsequent operations
 
 2. **Generate initial chapters** (e.g., 5 chapters):

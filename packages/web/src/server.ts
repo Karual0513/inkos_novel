@@ -1,10 +1,16 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { StateManager } from "@actalk/inkos-core";
 import { collectCommandMetadata, createProgram, type CommandMetadata } from "@actalk/inkos/program";
+import {
+  readBookChapters,
+  readChapterDocument,
+  saveChapterDocument,
+  type ChapterSavePayload,
+} from "./chapter-documents.js";
 
 interface ProjectContextInfo {
   readonly relativePath: string;
@@ -18,6 +24,10 @@ interface ExecutionPayload {
   readonly contextPath?: string;
   readonly arguments?: Record<string, string>;
   readonly options?: Record<string, string | boolean>;
+}
+
+interface ChapterRequestPayload extends ChapterSavePayload {
+  readonly contextPath?: string;
 }
 
 const runtimeDir = dirname(fileURLToPath(import.meta.url));
@@ -47,6 +57,33 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/api/dashboard") {
       const contextRoot = resolveContextRoot(url.searchParams.get("context") ?? undefined);
       return json(response, 200, await readDashboard(contextRoot));
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/chapters") {
+      const contextRoot = resolveContextRoot(url.searchParams.get("context") ?? undefined);
+      const bookId = url.searchParams.get("bookId");
+      if (!bookId) {
+        throw new Error("Missing required query parameter: bookId");
+      }
+      return json(response, 200, await readBookChapters(contextRoot, bookId));
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/chapter") {
+      const contextRoot = resolveContextRoot(url.searchParams.get("context") ?? undefined);
+      const bookId = url.searchParams.get("bookId");
+      const chapter = parseInt(url.searchParams.get("chapter") ?? "", 10);
+      if (!bookId) {
+        throw new Error("Missing required query parameter: bookId");
+      }
+      if (!Number.isInteger(chapter) || chapter < 1) {
+        throw new Error("Missing or invalid query parameter: chapter");
+      }
+      return json(response, 200, await readChapterDocument(contextRoot, bookId, chapter));
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/chapter") {
+      const payload = (await readJsonBody(request)) as ChapterRequestPayload;
+      return json(response, 200, await saveChapterDocument(resolveContextRoot(payload.contextPath), payload));
     }
 
     if (request.method === "POST" && url.pathname === "/api/execute") {

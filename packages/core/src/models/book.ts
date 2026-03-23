@@ -4,6 +4,11 @@ export const PlatformSchema = z.enum(["tomato", "feilu", "qidian", "other"]);
 export type Platform = z.infer<typeof PlatformSchema>;
 
 export const GenreSchema = z.enum([
+  "apocalypse",
+  "interstellar",
+  "onlinegame",
+  "rebirth",
+  "system",
   "xuanhuan",
   "xianxia",
   "urban",

@@ -59,7 +59,8 @@ select {
 .command-panel,
 .output-panel,
 .sidebar,
-.project-grid > .card {
+.editor-panel,
+.stack-column > .card {
   padding: 24px;
 }
 
@@ -152,6 +153,7 @@ select {
 
 .toolbar select,
 .field input,
+.field select,
 .sidebar-head input {
   width: 100%;
   border: 1px solid rgba(33, 56, 52, 0.14);
@@ -164,6 +166,7 @@ select {
 
 .toolbar select:focus,
 .field input:focus,
+.field select:focus,
 .sidebar-head input:focus {
   border-color: rgba(13, 107, 102, 0.38);
   box-shadow: 0 0 0 4px rgba(13, 107, 102, 0.08);
@@ -296,6 +299,18 @@ select {
   gap: 20px;
 }
 
+.workbench-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
+  gap: 20px;
+}
+
+.stack-column {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+
 .panel-head {
   display: flex;
   justify-content: space-between;
@@ -332,6 +347,11 @@ select {
   color: var(--success);
 }
 
+.badge.warning {
+  background: rgba(198, 106, 56, 0.14);
+  color: var(--accent-alt);
+}
+
 .badge.danger {
   background: rgba(177, 75, 47, 0.12);
   color: var(--danger);
@@ -360,11 +380,27 @@ select {
 }
 
 .form-grid,
-.project-grid,
 .output-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+}
+
+.context-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.context-bar span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(13, 107, 102, 0.08);
+  color: var(--ink);
+  font-size: 0.88rem;
 }
 
 .field,
@@ -395,7 +431,8 @@ select {
 }
 
 .primary,
-.secondary {
+.secondary,
+.ghost {
   border: 0;
   border-radius: 999px;
   padding: 12px 20px;
@@ -413,8 +450,14 @@ select {
   color: var(--ink);
 }
 
+.ghost {
+  background: rgba(13, 107, 102, 0.08);
+  color: var(--accent);
+}
+
 .primary:hover,
-.secondary:hover {
+.secondary:hover,
+.ghost:hover {
   transform: translateY(-1px);
 }
 
@@ -440,8 +483,166 @@ select {
   background: rgba(255, 255, 255, 0.5);
 }
 
+.list-card.selected {
+  border-color: rgba(13, 107, 102, 0.22);
+  background: linear-gradient(135deg, rgba(13, 107, 102, 0.12), rgba(255, 255, 255, 0.82));
+}
+
 .list-card strong {
   display: block;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.card-actions .ghost,
+.card-actions .secondary,
+.card-actions .primary {
+  padding: 9px 14px;
+}
+
+.chapter-list {
+  max-height: 520px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.path-hint {
+  opacity: 0.72;
+}
+
+.editor-panel {
+  min-height: 780px;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.7fr);
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.editor-surface,
+.editor-sidebar {
+  min-width: 0;
+}
+
+.editor-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+#chapter-editor {
+  width: 100%;
+  min-height: 560px;
+  resize: vertical;
+  border-radius: 18px;
+  border: 1px solid rgba(33, 56, 52, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  padding: 18px;
+  outline: none;
+  line-height: 1.8;
+  font-family: "Cascadia Code", "Consolas", "Microsoft YaHei UI", monospace;
+  font-size: 0.95rem;
+}
+
+#chapter-editor:focus {
+  border-color: rgba(13, 107, 102, 0.38);
+  box-shadow: 0 0 0 4px rgba(13, 107, 102, 0.08);
+}
+
+.editor-sidebar {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.info-card {
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(33, 56, 52, 0.08);
+}
+
+.info-card h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.plain-list,
+.issue-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.plain-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.plain-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(33, 56, 52, 0.08);
+}
+
+.plain-list li:last-child {
+  border-bottom: 0;
+}
+
+.plain-list span {
+  color: var(--muted);
+}
+
+.issue-list li + li {
+  margin-top: 8px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.summary-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(33, 56, 52, 0.08);
+}
+
+.summary-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.summary-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.15rem;
+}
+
+.editor-empty {
+  min-height: 620px;
 }
 
 .empty-state {
@@ -476,14 +677,19 @@ select {
 @media (max-width: 1180px) {
   .hero,
   .main-grid,
+  .workbench-grid,
   .form-grid,
-  .project-grid,
+  .editor-grid,
   .output-grid,
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
 
   .sidebar {
+    min-height: auto;
+  }
+
+  .editor-panel {
     min-height: auto;
   }
 }
@@ -498,14 +704,21 @@ select {
   .command-panel,
   .output-panel,
   .sidebar,
-  .project-grid > .card {
+  .editor-panel,
+  .stack-column > .card {
     padding: 18px;
   }
 
   .toolbar,
   .panel-head,
-  .action-row {
+  .action-row,
+  .editor-toolbar,
+  .card-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
   }
 }

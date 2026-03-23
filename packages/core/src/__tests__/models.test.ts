@@ -121,6 +121,11 @@ describe("PlatformSchema", () => {
 
 describe("GenreSchema", () => {
   const validGenres = [
+    "apocalypse",
+    "interstellar",
+    "onlinegame",
+    "rebirth",
+    "system",
     "xuanhuan",
     "xianxia",
     "urban",

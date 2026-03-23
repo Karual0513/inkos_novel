@@ -137,7 +137,7 @@ Pipeline events POST JSON to configured URLs (HMAC-SHA256 signed), with event fi
 
 ### Genre Customization
 
-5 built-in genres, each with a complete set of writing rules: chapter types, prohibition lists, fatigue words, language rules, and audit dimensions.
+10 built-in genres, each with a complete set of writing rules: chapter types, prohibition lists, fatigue words, language rules, and audit dimensions.
 
 | Genre | Built-in Rules |
 |-------|---------------|
@@ -145,6 +145,11 @@ Pipeline events POST JSON to configured URLs (HMAC-SHA256 signed), with event fi
 | Xianxia (Cultivation) | Cultivation/enlightenment pacing, artifact system, heavenly dao rules |
 | Urban | Era research, business/social-driven plot, era-matched legal terminology, no numerical system |
 | Horror | Atmosphere progression, fear levels, restrained narration, no power scaling audit |
+| Rebirth | Time-advantage payoff, butterfly-effect cost, destiny rewrite under uncertainty |
+| System | Task/reward/penalty loop, system boundaries, ledger consistency |
+| Onlinegame | Trackable stats and drops, raid mechanics, team and meta competition |
+| Apocalypse | Resource decay, shelter maintenance, threat escalation, survival-rule discovery |
+| Interstellar | Civilizational scale, route and supply costs, tech boundaries, strategic conflict |
 | General | Minimal fallback |
 
 Specify a genre when creating a book and matching rules activate automatically:
@@ -152,6 +157,8 @@ Specify a genre when creating a book and matching rules activate automatically:
 ```bash
 inkos book create --title "Devouring Emperor" --genre xuanhuan
 ```
+
+Available genre IDs: `rebirth`, `system`, `onlinegame`, `apocalypse`, `interstellar`, `xuanhuan`, `xianxia`, `urban`, `horror`, `other`
 
 View, copy, or create genre rules:
 

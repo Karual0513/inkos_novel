@@ -35,7 +35,7 @@ genreCommand
 genreCommand
   .command("show")
   .description("Display a genre profile")
-  .argument("<id>", "Genre ID (e.g. xuanhuan, urban, horror)")
+  .argument("<id>", "Genre ID (e.g. rebirth, system, onlinegame, apocalypse, interstellar)")
   .action(async (id: string) => {
     try {
       const root = findProjectRoot();
@@ -118,7 +118,7 @@ auditDimensions: [1,2,3,6,7,8,9,10,13,14,15,16,17,18,19]
 genreCommand
   .command("copy")
   .description("Copy a built-in genre profile to project for customization")
-  .argument("<id>", "Genre ID to copy (e.g. xuanhuan)")
+  .argument("<id>", "Genre ID to copy (e.g. rebirth)")
   .action(async (id: string) => {
     try {
       const root = findProjectRoot();
