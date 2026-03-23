@@ -8,12 +8,14 @@ import { describe, expect, it } from "vitest";
 const testDir = dirname(fileURLToPath(import.meta.url));
 const cliDir = resolve(testDir, "..", "..");
 const workspaceRoot = resolve(cliDir, "..", "..");
+const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
 async function extractPackedPackageJson(packDir: string) {
-  execFileSync("npm", ["pack", "--pack-destination", packDir], {
+  execFileSync(npmCommand, ["pack", "--pack-destination", packDir], {
     cwd: cliDir,
     env: process.env,
     encoding: "utf-8",
+    shell: process.platform === "win32",
   });
 
   const tgzFiles = (await readdir(packDir)).filter((name) => name.endsWith(".tgz"));

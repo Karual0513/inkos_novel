@@ -55,6 +55,22 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.15)
 
+  packages/web:
+    dependencies:
+      '@actalk/inkos':
+        specifier: workspace:*
+        version: link:../cli
+      '@actalk/inkos-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
 packages:
 
   '@anthropic-ai/sdk@0.78.0':

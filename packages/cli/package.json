@@ -3,6 +3,18 @@
   "version": "0.4.3",
   "description": "InkOS CLI — multi-agent novel production system",
   "type": "module",
+  "main": "dist/program.js",
+  "types": "dist/program.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/program.d.ts",
+      "import": "./dist/program.js"
+    },
+    "./program": {
+      "types": "./dist/program.d.ts",
+      "import": "./dist/program.js"
+    }
+  },
   "bin": {
     "inkos": "dist/index.js"
   },

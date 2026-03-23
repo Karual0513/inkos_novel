@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InkOS Studio</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero card">
+        <div>
+          <p class="eyebrow">InkOS Studio</p>
+          <h1>把 CLI 变成可视化小说生产台</h1>
+          <p class="hero-copy">
+            这个控制台直接读取 InkOS 的命令结构，并在本地执行真实的 CLI。左边选命令，右边填参数，下面看输出和项目状态。
+          </p>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-chip">
+            <span>packages/core</span>
+            <strong>引擎与状态</strong>
+          </div>
+          <div class="hero-chip">
+            <span>packages/cli</span>
+            <strong>命令与流程</strong>
+          </div>
+          <div class="hero-chip accent">
+            <span>packages/web</span>
+            <strong>可视化控制层</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="toolbar card">
+        <div>
+          <label for="context-select">项目上下文</label>
+          <select id="context-select"></select>
+        </div>
+        <div class="toolbar-note" id="cli-status"></div>
+      </section>
+
+      <section class="dashboard-grid" id="dashboard-cards"></section>
+
+      <main class="main-grid">
+        <aside class="sidebar card">
+          <div class="sidebar-head">
+            <div>
+              <p class="eyebrow">Command Map</p>
+              <h2>CLI 命令</h2>
+            </div>
+            <input id="command-search" type="search" placeholder="搜索命令或描述" />
+          </div>
+          <div id="command-groups" class="command-groups"></div>
+        </aside>
+
+        <section class="workspace-column">
+          <section class="command-panel card" id="command-panel"></section>
+          <section class="project-grid">
+            <section class="card" id="books-panel"></section>
+            <section class="card" id="reviews-panel"></section>
+          </section>
+          <section class="output-panel card" id="output-panel"></section>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/app.js"></script>
+  </body>
+  </html>

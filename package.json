@@ -11,6 +11,8 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm -r dev",
+    "studio": "corepack pnpm --filter @actalk/inkos-core build && corepack pnpm --filter @actalk/inkos build && corepack pnpm --filter @actalk/inkos-web build && corepack pnpm --filter @actalk/inkos-web start",
+    "studio:build": "corepack pnpm --filter @actalk/inkos-core build && corepack pnpm --filter @actalk/inkos build && corepack pnpm --filter @actalk/inkos-web build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",

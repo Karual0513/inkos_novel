@@ -1,0 +1,22 @@
+{
+  "name": "@actalk/inkos-web",
+  "version": "0.4.3",
+  "private": true,
+  "description": "InkOS Studio — local web console for the InkOS CLI",
+  "type": "module",
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "start": "node dist/server.js",
+    "dev": "node ./scripts/build.mjs && node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No tests for @actalk/inkos-web\""
+  },
+  "dependencies": {
+    "@actalk/inkos": "workspace:*",
+    "@actalk/inkos-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}
