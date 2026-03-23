@@ -20,6 +20,14 @@
 
 Open-source multi-agent system that autonomously writes, audits, and revises novels — with human review gates that keep you in control.
 
+## Acknowledgements
+
+Thanks to the original author: Narcooo (GitHub: [https://github.com/Narcooo](https://github.com/Narcooo))
+
+This project is an unofficial derivative version based on the original work, with creative modifications and feature extensions.
+
+Original project: [https://github.com/Narcooo/inkos](https://github.com/Narcooo/inkos)
+
 ## v0.4 Update
 
 Spinoff writing + style cloning + post-write validator + audit-revise hardening.
@@ -35,12 +43,12 @@ inkos write next my-prequel                        # Writer auto-reads canon con
 
 Generates `story/parent_canon.md` containing the parent's world rules, character snapshots (with information boundaries), key event timeline, and foreshadowing state. The auditor auto-activates 4 spinoff-specific dimensions:
 
-| Dimension | Checks |
-|-----------|--------|
-| Canon Event Conflict | Whether spinoff events contradict the parent's canon constraints |
-| Future Info Leak | Whether characters reference information revealed after the divergence point |
-| Cross-Book World Consistency | Whether the spinoff violates parent world rules (power systems, geography, factions) |
-| Spinoff Foreshadowing Isolation | Whether the spinoff oversteps by resolving parent foreshadowing |
+| Dimension                       | Checks                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| Canon Event Conflict            | Whether spinoff events contradict the parent's canon constraints                     |
+| Future Info Leak                | Whether characters reference information revealed after the divergence point         |
+| Cross-Book World Consistency    | Whether the spinoff violates parent world rules (power systems, geography, factions) |
+| Spinoff Foreshadowing Isolation | Whether the spinoff oversteps by resolving parent foreshadowing                      |
 
 Auto-activates when `parent_canon.md` is detected. No extra configuration needed.
 
@@ -54,6 +62,7 @@ inkos style import reference.txt my-book --name "Author"  # Import style into bo
 ```
 
 Produces two files:
+
 - `style_profile.json` — statistical fingerprint (sentence/paragraph length distribution, vocabulary diversity, rhetorical density)
 - `style_guide.md` — LLM-generated qualitative guide (rhythm, tone, word preferences, taboos)
 
@@ -63,19 +72,19 @@ The Writer reads the style guide every chapter; the Auditor cross-checks against
 
 11 deterministic rules, zero LLM cost, fires immediately after each chapter:
 
-| Rule | Description |
-|------|-------------|
-| Banned Patterns | "not X… but Y…" sentence structure |
-| Dash Prohibition | em-dash "——" |
+| Rule                    | Description                                                    |
+| ----------------------- | -------------------------------------------------------------- |
+| Banned Patterns         | "not X… but Y…" sentence structure                           |
+| Dash Prohibition        | em-dash "——"                                                 |
 | Transition Word Density | "as if" / "suddenly" / "unexpectedly" — max 1 per 3,000 words |
-| High-Fatigue Words | Genre fatigue words: max 1 per word per chapter |
-| Meta-Narration | Screenwriter-style commentary |
-| Report Terminology | Analytical framework terms banned from prose |
-| Author Sermonizing | "obviously" / "needless to say" etc. |
-| Collective Shock | "the whole crowd was stunned" cliches |
-| Consecutive "le" (了) | ≥ 4 consecutive sentences containing "了" |
-| Paragraph Length | ≥ 2 paragraphs over 300 characters |
-| Book Prohibitions | Custom bans from book_rules.md |
+| High-Fatigue Words      | Genre fatigue words: max 1 per word per chapter                |
+| Meta-Narration          | Screenwriter-style commentary                                  |
+| Report Terminology      | Analytical framework terms banned from prose                   |
+| Author Sermonizing      | "obviously" / "needless to say" etc.                           |
+| Collective Shock        | "the whole crowd was stunned" cliches                          |
+| Consecutive "le" (了)   | ≥ 4 consecutive sentences containing "了"                     |
+| Paragraph Length        | ≥ 2 paragraphs over 300 characters                            |
+| Book Prohibitions       | Custom bans from book_rules.md                                 |
 
 When the validator finds error-level violations, it auto-triggers `spot-fix` mode for targeted repair before the LLM audit even runs.
 
@@ -107,22 +116,22 @@ Three-layer rule separation + cross-chapter memory + AIGC detection + Webhook.
 
 The Writer auto-generates chapter summaries, updates subplot/emotion/character matrices — all appended to truth files. Subsequent chapters load full context, so long-term foreshadowing never gets lost.
 
-| Truth File | Purpose |
-|------------|---------|
+| Truth File               | Purpose                                                                     |
+| ------------------------ | --------------------------------------------------------------------------- |
 | `chapter_summaries.md` | Per-chapter summaries: characters, key events, state changes, hook dynamics |
-| `subplot_board.md` | Subplot progress board: A/B/C line status tracking |
-| `emotional_arcs.md` | Emotional arcs: per-character emotion, triggers, arc direction |
-| `character_matrix.md` | Character interaction matrix: encounter records, information boundaries |
+| `subplot_board.md`     | Subplot progress board: A/B/C line status tracking                          |
+| `emotional_arcs.md`    | Emotional arcs: per-character emotion, triggers, arc direction              |
+| `character_matrix.md`  | Character interaction matrix: encounter records, information boundaries     |
 
 ### AIGC Detection
 
-| Feature | Description |
-|---------|-------------|
-| AI-Tell Audit | Pure rule-based detection (no LLM): paragraph uniformity, hedge word density, formulaic transitions, list-like structure — auto-merged into audit results |
-| AIGC Detection API | External API integration (GPTZero / Originality / custom endpoints), `inkos detect` command |
-| Style Fingerprint | Extract StyleProfile from reference text (sentence length, TTR, rhetorical features), inject into Writer prompt |
-| Anti-Detect Rewrite | ReviserAgent `anti-detect` mode, detect → rewrite → re-detect loop |
-| Detection Feedback Loop | `detection_history.json` records each detection/rewrite result, `inkos detect --stats` for statistics |
+| Feature                 | Description                                                                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI-Tell Audit           | Pure rule-based detection (no LLM): paragraph uniformity, hedge word density, formulaic transitions, list-like structure — auto-merged into audit results |
+| AIGC Detection API      | External API integration (GPTZero / Originality / custom endpoints),`inkos detect` command                                                               |
+| Style Fingerprint       | Extract StyleProfile from reference text (sentence length, TTR, rhetorical features), inject into Writer prompt                                            |
+| Anti-Detect Rewrite     | ReviserAgent `anti-detect` mode, detect → rewrite → re-detect loop                                                                                     |
+| Detection Feedback Loop | `detection_history.json` records each detection/rewrite result, `inkos detect --stats` for statistics                                                  |
 
 ```bash
 inkos style analyze reference.txt           # Analyze reference text style
@@ -139,18 +148,18 @@ Pipeline events POST JSON to configured URLs (HMAC-SHA256 signed), with event fi
 
 10 built-in genres, each with a complete set of writing rules: chapter types, prohibition lists, fatigue words, language rules, and audit dimensions.
 
-| Genre | Built-in Rules |
-|-------|---------------|
-| Xuanhuan (Fantasy) | Numerical system, power scaling, same-type absorption decay formula, face-slap/upgrade/payoff pacing |
-| Xianxia (Cultivation) | Cultivation/enlightenment pacing, artifact system, heavenly dao rules |
-| Urban | Era research, business/social-driven plot, era-matched legal terminology, no numerical system |
-| Horror | Atmosphere progression, fear levels, restrained narration, no power scaling audit |
-| Rebirth | Time-advantage payoff, butterfly-effect cost, destiny rewrite under uncertainty |
-| System | Task/reward/penalty loop, system boundaries, ledger consistency |
-| Onlinegame | Trackable stats and drops, raid mechanics, team and meta competition |
-| Apocalypse | Resource decay, shelter maintenance, threat escalation, survival-rule discovery |
-| Interstellar | Civilizational scale, route and supply costs, tech boundaries, strategic conflict |
-| General | Minimal fallback |
+| Genre                 | Built-in Rules                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------- |
+| Xuanhuan (Fantasy)    | Numerical system, power scaling, same-type absorption decay formula, face-slap/upgrade/payoff pacing |
+| Xianxia (Cultivation) | Cultivation/enlightenment pacing, artifact system, heavenly dao rules                                |
+| Urban                 | Era research, business/social-driven plot, era-matched legal terminology, no numerical system        |
+| Horror                | Atmosphere progression, fear levels, restrained narration, no power scaling audit                    |
+| Rebirth               | Time-advantage payoff, butterfly-effect cost, destiny rewrite under uncertainty                      |
+| System                | Task/reward/penalty loop, system boundaries, ledger consistency                                      |
+| Onlinegame            | Trackable stats and drops, raid mechanics, team and meta competition                                 |
+| Apocalypse            | Resource decay, shelter maintenance, threat escalation, survival-rule discovery                      |
+| Interstellar          | Civilizational scale, route and supply costs, tech boundaries, strategic conflict                    |
+| General               | Minimal fallback                                                                                     |
 
 Specify a genre when creating a book and matching rules activate automatically:
 
@@ -248,13 +257,13 @@ Each chapter is produced by five agents in sequence:
   <img src="assets/screenshot-pipeline.png" width="800" alt="Pipeline diagram">
 </p>
 
-| Agent | Responsibility |
-|-------|---------------|
-| **Radar** | Scans platform trends and reader preferences to inform story direction (pluggable, skippable) |
-| **Architect** | Plans chapter structure: outline, scene beats, pacing targets |
-| **Writer** | Produces prose from the plan + current world state |
-| **Continuity Auditor** | Validates the draft against canonical truth files |
-| **Reviser** | Fixes issues found by the auditor — auto-fixes critical problems, flags others for human review |
+| Agent                        | Responsibility                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Radar**              | Scans platform trends and reader preferences to inform story direction (pluggable, skippable)    |
+| **Architect**          | Plans chapter structure: outline, scene beats, pacing targets                                    |
+| **Writer**             | Produces prose from the plan + current world state                                               |
+| **Continuity Auditor** | Validates the draft against canonical truth files                                                |
+| **Reviser**            | Fixes issues found by the auditor — auto-fixes critical problems, flags others for human review |
 
 If the audit fails, the pipeline automatically enters a revise → re-audit loop until all critical issues are resolved.
 
@@ -262,15 +271,15 @@ If the audit fails, the pipeline automatically enters a revise → re-audit loop
 
 Every book maintains 7 truth files as the single source of truth:
 
-| File | Purpose |
-|------|---------|
-| `current_state.md` | World state: character locations, relationships, knowledge, emotional arcs |
-| `particle_ledger.md` | Resource accounting: items, money, supplies with quantities and decay tracking |
-| `pending_hooks.md` | Open plot threads: foreshadowing planted, promises to readers, unresolved conflicts |
-| `chapter_summaries.md` | Per-chapter summaries: characters, key events, state changes, hook dynamics |
-| `subplot_board.md` | Subplot progress board: A/B/C line status tracking |
-| `emotional_arcs.md` | Emotional arcs: per-character emotion tracking and growth |
-| `character_matrix.md` | Character interaction matrix: encounter records, information boundaries |
+| File                     | Purpose                                                                             |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| `current_state.md`     | World state: character locations, relationships, knowledge, emotional arcs          |
+| `particle_ledger.md`   | Resource accounting: items, money, supplies with quantities and decay tracking      |
+| `pending_hooks.md`     | Open plot threads: foreshadowing planted, promises to readers, unresolved conflicts |
+| `chapter_summaries.md` | Per-chapter summaries: characters, key events, state changes, hook dynamics         |
+| `subplot_board.md`     | Subplot progress board: A/B/C line status tracking                                  |
+| `emotional_arcs.md`    | Emotional arcs: per-character emotion tracking and growth                           |
+| `character_matrix.md`  | Character interaction matrix: encounter records, information boundaries             |
 
 The Continuity Auditor checks every draft against these files. If a character "remembers" something they never witnessed, or pulls a weapon they lost two chapters ago, the auditor catches it. Legacy books without new truth files are automatically compatible.
 
@@ -378,37 +387,37 @@ inkos up                          # Daemon mode
 
 ## CLI Reference
 
-| Command | Description |
-|---------|-------------|
-| `inkos init [name]` | Initialize project (omit name to init current directory) |
-| `inkos book create` | Create a new book (`--chapter-words` to set word count) |
-| `inkos book update [id]` | Update book settings (`--chapter-words`, `--target-chapters`, `--status`) |
-| `inkos book list` | List all books |
-| `inkos genre list/show/copy/create` | View, copy, or create genres |
-| `inkos write next [id]` | Full pipeline: write next chapter (`--words` to override, `--count` for batch) |
-| `inkos write rewrite [id] <n>` | Rewrite chapter N (restores state snapshot, requires confirmation) |
-| `inkos draft [id]` | Write draft only (`--words` to override word count) |
-| `inkos audit [id] [n]` | Audit a specific chapter |
-| `inkos revise [id] [n]` | Revise a specific chapter |
-| `inkos agent <instruction>` | Natural language agent mode |
-| `inkos review list [id]` | Review drafts |
-| `inkos review approve-all [id]` | Batch approve |
-| `inkos status [id]` | Project status |
-| `inkos export [id]` | Export book to txt/md |
-| `inkos radar scan` | Scan platform trends |
-| `inkos config set-global` | Set global LLM config (~/.inkos/.env) |
-| `inkos config show-global` | Show global config |
-| `inkos config set/show` | View/update project config |
-| `inkos config set-model <agent> <model>` | Set model override for a specific agent |
-| `inkos config remove-model <agent>` | Remove agent model override (fall back to default) |
-| `inkos config show-models` | Show current model routing |
-| `inkos doctor` | Diagnose setup issues (includes API connectivity test) |
-| `inkos detect [id] [n]` | AIGC detection (`--all` for all chapters, `--stats` for statistics) |
-| `inkos style analyze <file>` | Analyze reference text to extract style fingerprint |
-| `inkos style import <file> [id]` | Import style fingerprint into a book |
-| `inkos import canon [id] --from <parent>` | Import parent canon for spinoff writing |
-| `inkos update` | Update to latest version |
-| `inkos up / down` | Start/stop daemon |
+| Command                                     | Description                                                                        |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `inkos init [name]`                       | Initialize project (omit name to init current directory)                           |
+| `inkos book create`                       | Create a new book (`--chapter-words` to set word count)                          |
+| `inkos book update [id]`                  | Update book settings (`--chapter-words`, `--target-chapters`, `--status`)    |
+| `inkos book list`                         | List all books                                                                     |
+| `inkos genre list/show/copy/create`       | View, copy, or create genres                                                       |
+| `inkos write next [id]`                   | Full pipeline: write next chapter (`--words` to override, `--count` for batch) |
+| `inkos write rewrite [id] <n>`            | Rewrite chapter N (restores state snapshot, requires confirmation)                 |
+| `inkos draft [id]`                        | Write draft only (`--words` to override word count)                              |
+| `inkos audit [id] [n]`                    | Audit a specific chapter                                                           |
+| `inkos revise [id] [n]`                   | Revise a specific chapter                                                          |
+| `inkos agent <instruction>`               | Natural language agent mode                                                        |
+| `inkos review list [id]`                  | Review drafts                                                                      |
+| `inkos review approve-all [id]`           | Batch approve                                                                      |
+| `inkos status [id]`                       | Project status                                                                     |
+| `inkos export [id]`                       | Export book to txt/md                                                              |
+| `inkos radar scan`                        | Scan platform trends                                                               |
+| `inkos config set-global`                 | Set global LLM config (~/.inkos/.env)                                              |
+| `inkos config show-global`                | Show global config                                                                 |
+| `inkos config set/show`                   | View/update project config                                                         |
+| `inkos config set-model <agent> <model>`  | Set model override for a specific agent                                            |
+| `inkos config remove-model <agent>`       | Remove agent model override (fall back to default)                                 |
+| `inkos config show-models`                | Show current model routing                                                         |
+| `inkos doctor`                            | Diagnose setup issues (includes API connectivity test)                             |
+| `inkos detect [id] [n]`                   | AIGC detection (`--all` for all chapters, `--stats` for statistics)            |
+| `inkos style analyze <file>`              | Analyze reference text to extract style fingerprint                                |
+| `inkos style import <file> [id]`          | Import style fingerprint into a book                                               |
+| `inkos import canon [id] --from <parent>` | Import parent canon for spinoff writing                                            |
+| `inkos update`                            | Update to latest version                                                           |
+| `inkos up / down`                         | Start/stop daemon                                                                  |
 
 `[id]` is auto-detected when the project has only one book. All commands support `--json` for structured output. `draft`/`write next`/`book create` support `--context` for writing guidance and `--words` to override per-chapter word count (OpenClaw can dynamically control this per chapter).
 
@@ -463,30 +472,30 @@ TypeScript monorepo managed with pnpm workspaces.
 
 ## Roadmap
 
-- [x] Full pipeline (radar → architect → writer → auditor → reviser)
-- [x] Canonical truth files + continuity audit
-- [x] Built-in writing rule system
-- [x] Full CLI (20 commands)
-- [x] State snapshots + chapter rewrite
-- [x] Daemon mode
-- [x] Notifications (Telegram / Feishu / WeCom)
-- [x] Atomic commands + JSON output (draft / audit / revise)
-- [x] Natural language agent mode (tool-use orchestration)
-- [x] Pluggable radar (RadarSource interface)
-- [x] External agent integration (OpenClaw, etc.)
-- [x] Genre customization + per-book rules (genre CLI + book_rules.md)
-- [x] 33-dimension continuity audit (including AI-tell detection + spinoff dims + outline adherence)
-- [x] De-AI-ification rules + style fingerprint injection
-- [x] Spinoff writing (canon import + 4 audit dimensions + info boundary control)
-- [x] Style cloning (statistical fingerprint + LLM style guide + Writer injection)
-- [x] Post-write validator (11 hard rules + auto spot-fix)
-- [x] Audit-revise loop hardening (AI marker guard + temperature lock)
-- [x] Multi-LLM provider (OpenAI + Anthropic + compatible endpoints)
-- [x] AIGC detection + anti-detect rewrite pipeline
-- [x] Webhook notifications + smart scheduler (quality gates)
-- [x] Cross-chapter coherence (chapter summaries + subplot/emotion/character matrices)
-- [ ] `packages/studio` Web UI for review and editing
-- [x] Multi-model routing (different models for different agents, `inkos config set-model`)
+- [X] Full pipeline (radar → architect → writer → auditor → reviser)
+- [X] Canonical truth files + continuity audit
+- [X] Built-in writing rule system
+- [X] Full CLI (20 commands)
+- [X] State snapshots + chapter rewrite
+- [X] Daemon mode
+- [X] Notifications (Telegram / Feishu / WeCom)
+- [X] Atomic commands + JSON output (draft / audit / revise)
+- [X] Natural language agent mode (tool-use orchestration)
+- [X] Pluggable radar (RadarSource interface)
+- [X] External agent integration (OpenClaw, etc.)
+- [X] Genre customization + per-book rules (genre CLI + book_rules.md)
+- [X] 33-dimension continuity audit (including AI-tell detection + spinoff dims + outline adherence)
+- [X] De-AI-ification rules + style fingerprint injection
+- [X] Spinoff writing (canon import + 4 audit dimensions + info boundary control)
+- [X] Style cloning (statistical fingerprint + LLM style guide + Writer injection)
+- [X] Post-write validator (11 hard rules + auto spot-fix)
+- [X] Audit-revise loop hardening (AI marker guard + temperature lock)
+- [X] Multi-LLM provider (OpenAI + Anthropic + compatible endpoints)
+- [X] AIGC detection + anti-detect rewrite pipeline
+- [X] Webhook notifications + smart scheduler (quality gates)
+- [X] Cross-chapter coherence (chapter summaries + subplot/emotion/character matrices)
+- [X] `packages/studio` Web UI for review and editing
+- [X] Multi-model routing (different models for different agents, `inkos config set-model`)
 - [ ] Custom agent plugin system
 - [ ] Platform-specific export (Qidian, Tomato, etc.)
 
