@@ -56,6 +56,7 @@ const PAGE_DEFINITIONS = {
 const state = {
   meta: null,
   contexts: [],
+  externalContexts: loadExternalContexts(),
   commands: [],
   selectedContext: ".",
   selectedCommandPath: "",
@@ -74,6 +75,9 @@ const state = {
   resultFilterStatus: "all",
   resultFilterQuery: "",
   projectCreatePath: "",
+  pathTree: {},
+  pathTreeLoading: {},
+  pathTreeExpanded: [".", "@roots"],
 };
 
 const refs = {
@@ -101,6 +105,8 @@ await bootstrap();
 
 async function bootstrap() {
   await loadMeta();
+  await ensurePathTreeLoaded(".");
+  await ensurePathTreeLoaded("@roots");
   bindEvents();
   syncPageFromHash();
   renderContextOptions();
@@ -114,14 +120,16 @@ async function bootstrap() {
   updateProjectPathPreview();
 }
 
-async function loadMeta() {
+async function loadMeta(preferredContext = state.selectedContext) {
   const response = await fetch("/api/meta");
   state.meta = await response.json();
-  state.contexts = state.meta.contexts;
+  state.contexts = mergeContexts(state.meta.contexts, preferredContext);
   state.commands = flattenCommands(state.meta.commands)
     .filter((command) => command.runnable)
     .map(localizeCommand);
-  state.selectedContext = state.contexts.find((context) => context.isDefault)?.relativePath ?? ".";
+  state.selectedContext = state.contexts.find((context) => context.relativePath === preferredContext)?.relativePath
+    ?? state.contexts.find((context) => context.isDefault)?.relativePath
+    ?? ".";
   state.selectedCommandPath = state.commands.find((command) => command.path === "status")?.path ?? state.commands[0]?.path ?? "";
   refs.cliStatus.textContent = state.meta.cliBuilt
     ? "CLI 已构建，网页会直接执行真实的 InkOS 命令。"
@@ -157,6 +165,37 @@ function bindEvents() {
         input.value = value;
       }
       updateProjectPathPreview();
+      renderCommandOverview();
+    }
+
+    if (action.dataset.action === "toggle-path-node") {
+      void togglePathNode(action.dataset.pathNode || ".");
+    }
+
+    if (action.dataset.action === "select-path-node") {
+      state.projectCreatePath = action.dataset.pathNode || "";
+      updateProjectPathPreview();
+      renderCommandOverview();
+    }
+
+    if (action.dataset.action === "reload-path-tree") {
+      state.pathTree = {};
+      state.pathTreeExpanded = [".", "@roots"];
+      void Promise.all([ensurePathTreeLoaded("."), ensurePathTreeLoaded("@roots")]).then(() => {
+        renderCommandOverview();
+      });
+    }
+
+    if (action.dataset.action === "select-path-parent") {
+      const parentPath = getPathParent(state.projectCreatePath);
+      if (!parentPath) {
+        return;
+      }
+      state.projectCreatePath = parentPath;
+      void ensurePathTreeLoaded(parentPath).then(() => {
+        expandPathTrail(parentPath);
+        renderCommandOverview();
+      });
     }
   });
 
@@ -404,7 +443,7 @@ function renderContextOptions() {
     .map(
       (context) => `
         <option value="${escapeAttribute(context.relativePath)}" ${context.relativePath === state.selectedContext ? "selected" : ""}>
-          ${escapeHtml(context.label)}${context.initialized ? "" : "（未初始化）"}
+          ${escapeHtml(formatContextLabel(context))}${context.initialized ? "" : "（未初始化）"}
         </option>
       `,
     )
@@ -1751,17 +1790,33 @@ function renderCommandOverview() {
       </div>
       <div class="info-card project-create-card">
         <h3>创建项目</h3>
-        <p class="muted">输入工作区内相对路径，直接生成新的 InkOS 项目骨架并加入上下文列表。</p>
+        <p class="muted">可输入工作区相对路径，也可直接浏览工作区与本机磁盘，选择绝对路径作为项目目录。</p>
         <form id="project-create-form" class="project-create-form">
           <label class="field">
-            <span>目标路径（相对工作区） *</span>
-            <input id="project-create-path" name="targetPath" type="text" list="project-path-suggestions" value="${escapeAttribute(draftPath)}" placeholder="例如 novels/my-next-book 或 sandbox/demo-project" />
-            <small>将在 ${escapeHtml(state.meta?.workspaceRoot ?? "当前工作区")} 下创建该目录。</small>
+            <span>目标路径（相对或绝对） *</span>
+            <input id="project-create-path" name="targetPath" type="text" list="project-path-suggestions" value="${escapeAttribute(draftPath)}" placeholder="例如 novels/my-next-book 或 D:/Novels/demo-project" />
+            <small>相对路径将以 ${escapeHtml(state.meta?.workspaceRoot ?? "当前工作区")} 为基准；绝对路径会直接使用你选择的目录。</small>
           </label>
           <datalist id="project-path-suggestions">
             ${pathSuggestions.map((path) => `<option value="${escapeAttribute(path === "." ? "" : path)}"></option>`).join("")}
           </datalist>
           <div class="project-path-preview" id="project-path-preview"></div>
+          <div class="path-tree-card">
+            <div class="path-tree-head">
+              <div>
+                <strong>目录树浏览器</strong>
+                <p class="muted path-tree-caption">工作区与本机磁盘可同时浏览，点击目录名即可把路径填入输入框。</p>
+              </div>
+              <div class="path-tree-tools">
+                <button class="ghost" type="button" data-action="select-path-parent" ${getPathParent(draftPath) ? "" : "disabled"}>上一级</button>
+                <button class="ghost" type="button" data-action="reload-path-tree">刷新目录</button>
+              </div>
+            </div>
+            <div class="path-breadcrumbs">${renderPathBreadcrumbs(draftPath)}</div>
+            <div class="path-tree-shell">
+              ${renderPathTree()}
+            </div>
+          </div>
           <div class="card-actions project-create-actions">
             <button class="primary" type="submit">创建项目</button>
             <button class="secondary" type="button" data-action="use-selected-context-path">使用当前上下文路径</button>
@@ -1895,7 +1950,102 @@ function getVisibleCommands() {
 }
 
 function getProjectPathSuggestions() {
-  return Array.isArray(state.meta?.pathSuggestions) ? state.meta.pathSuggestions : [];
+  const workspaceSuggestions = Array.isArray(state.meta?.pathSuggestions) ? state.meta.pathSuggestions : [];
+  const externalSuggestions = state.externalContexts.map((context) => context.relativePath);
+  return [...new Set([...workspaceSuggestions, ...externalSuggestions])];
+}
+
+async function ensurePathTreeLoaded(path) {
+  const targetPath = String(path || ".");
+  if (state.pathTree[targetPath] || state.pathTreeLoading[targetPath]) {
+    return;
+  }
+
+  state.pathTreeLoading[targetPath] = true;
+  try {
+    const response = await fetch(`/api/path-tree?path=${encodeURIComponent(targetPath)}`);
+    const payload = await response.json();
+    state.pathTree[targetPath] = Array.isArray(payload.nodes) ? payload.nodes : [];
+  } finally {
+    delete state.pathTreeLoading[targetPath];
+  }
+}
+
+async function togglePathNode(path) {
+  const targetPath = String(path || ".");
+  if (state.pathTreeExpanded.includes(targetPath)) {
+    state.pathTreeExpanded = state.pathTreeExpanded.filter((item) => item !== targetPath);
+    renderCommandOverview();
+    return;
+  }
+
+  await ensurePathTreeLoaded(targetPath);
+  if (!state.pathTreeExpanded.includes(targetPath)) {
+    state.pathTreeExpanded = [...state.pathTreeExpanded, targetPath];
+  }
+  renderCommandOverview();
+}
+
+function renderPathTree() {
+  const workspaceNodes = state.pathTree["."];
+  const filesystemRoots = state.pathTree["@roots"];
+  if (state.pathTreeLoading["."] && !workspaceNodes && state.pathTreeLoading["@roots"] && !filesystemRoots) {
+    return `<div class="empty-state tiny"><p>目录加载中...</p></div>`;
+  }
+  return `
+    <div class="path-tree-root path-tree-sections">
+      <section class="path-tree-section">
+        <div class="path-tree-section-title">工作区</div>
+        ${renderPathTreeNode({ path: ".", label: "workspace", initialized: true, hasChildren: true }, 0, true)}
+      </section>
+      <section class="path-tree-section">
+        <div class="path-tree-section-title">本机磁盘</div>
+        ${renderPathTreeNode({ path: "@roots", label: "computer", initialized: false, hasChildren: true }, 0, true, "本机")}
+      </section>
+    </div>
+  `;
+}
+
+function renderPathTreeNode(node, depth, isRoot = false, labelOverride = "") {
+  const children = state.pathTree[node.path] ?? [];
+  const expanded = state.pathTreeExpanded.includes(node.path);
+  const selected = normalizeTreeSelectablePath(state.projectCreatePath) === normalizeTreeSelectablePath(node.path);
+  const canSelect = !isRoot || isAbsoluteContextPath(node.path);
+  const displayLabel = labelOverride || node.label;
+  const isFilesystemRoots = node.path === "@roots";
+
+  return `
+    <div class="path-tree-node ${selected ? "selected" : ""}" style="--tree-depth:${depth}">
+      <div class="path-tree-row">
+        <button class="path-tree-toggle ghost" type="button" data-action="toggle-path-node" data-path-node="${escapeAttribute(node.path)}" ${node.hasChildren ? "" : "disabled"}>
+          ${node.hasChildren ? (expanded ? "-" : "+") : "·"}
+        </button>
+        <button class="path-tree-select ${selected ? "primary" : "secondary"}" type="button" data-action="select-path-node" data-path-node="${escapeAttribute(node.path)}" ${canSelect ? "" : "disabled"}>
+          ${escapeHtml(displayLabel)}
+        </button>
+        ${isFilesystemRoots ? `<span class="badge">磁盘根</span>` : node.initialized ? `<span class="badge">已初始化</span>` : `<span class="badge warning">未初始化</span>`}
+      </div>
+      ${expanded ? renderPathTreeChildren(node.path, children, depth + 1) : ""}
+    </div>
+  `;
+}
+
+function renderPathTreeChildren(parentPath, children, depth) {
+  if (state.pathTreeLoading[parentPath] && children.length === 0) {
+    return `<div class="path-tree-children"><p class="muted">正在加载子目录...</p></div>`;
+  }
+  if (children.length === 0) {
+    return `<div class="path-tree-children"><p class="muted">没有可浏览的子目录。</p></div>`;
+  }
+  return `
+    <div class="path-tree-children">
+      ${children.map((child) => renderPathTreeNode(child, depth)).join("")}
+    </div>
+  `;
+}
+
+function normalizeTreeSelectablePath(path) {
+  return String(path || "").replace(/^\.\//, "");
 }
 
 async function createProjectFromOverview() {
@@ -1961,7 +2111,11 @@ async function createProjectFromOverview() {
       return;
     }
 
-    await loadMeta();
+    if (isAbsoluteContextPath(result.createdContext)) {
+      upsertExternalContext(result.createdContext, true);
+    }
+
+    await loadMeta(result.createdContext);
     state.selectedContext = result.createdContext;
     state.projectCreatePath = "";
     renderContextOptions();
@@ -1993,9 +2147,163 @@ function updateProjectPathPreview(message) {
   }
 
   const targetPath = String(refs.commandOverview.querySelector("#project-create-path")?.value ?? state.projectCreatePath ?? "").trim();
-  preview.textContent = targetPath
-    ? `将创建到：${state.meta?.workspaceRoot ?? "工作区"}/${targetPath.replace(/\\/g, "/")}`
-    : "请选择或输入一个工作区内相对路径。";
+  if (!targetPath) {
+    preview.textContent = "请选择或输入一个目录路径，可为工作区相对路径，也可为系统绝对路径。";
+    return;
+  }
+
+  preview.textContent = isAbsoluteContextPath(targetPath)
+    ? `将创建到绝对路径：${normalizeContextPath(targetPath)}`
+    : `将创建到：${state.meta?.workspaceRoot ?? "工作区"}/${targetPath.replace(/\\/g, "/")}`;
+}
+
+function renderPathBreadcrumbs(targetPath) {
+  const parts = getPathBreadcrumbs(targetPath);
+  return parts.map((part, index) => {
+    const disabled = index === parts.length - 1;
+    return `<button class="path-breadcrumb ${disabled ? "active" : ""}" type="button" data-action="select-path-node" data-path-node="${escapeAttribute(part.path)}" ${disabled ? "disabled" : ""}>${escapeHtml(part.label)}</button>`;
+  }).join(`<span class="path-breadcrumb-sep">/</span>`);
+}
+
+function getPathBreadcrumbs(targetPath) {
+  const normalized = normalizeContextPath(targetPath || ".");
+  if (normalized === "@roots") {
+    return [{ label: "本机", path: "@roots" }];
+  }
+  if (normalized === ".") {
+    return [{ label: "workspace", path: "." }];
+  }
+  if (isAbsoluteContextPath(normalized)) {
+    const match = normalized.match(/^([A-Za-z]:\/)(.*)$/);
+    if (match) {
+      const [, rootPath, rest] = match;
+      const crumbs = [{ label: rootPath.replace(/\/$/, ""), path: rootPath }];
+      const segments = rest.split("/").filter(Boolean);
+      let current = rootPath.replace(/\/$/, "");
+      for (const segment of segments) {
+        current = `${current}/${segment}`;
+        crumbs.push({ label: segment, path: current });
+      }
+      return crumbs;
+    }
+    return [{ label: normalized, path: normalized }];
+  }
+
+  const segments = normalized.split("/").filter(Boolean);
+  const crumbs = [{ label: "workspace", path: "." }];
+  let current = "";
+  for (const segment of segments) {
+    current = current ? `${current}/${segment}` : segment;
+    crumbs.push({ label: segment, path: current });
+  }
+  return crumbs;
+}
+
+function getPathParent(targetPath) {
+  const normalized = normalizeContextPath(targetPath || ".");
+  if (!normalized || normalized === "." || normalized === "@roots") {
+    return null;
+  }
+  if (isAbsoluteContextPath(normalized)) {
+    const driveRootMatch = normalized.match(/^[A-Za-z]:\/$/);
+    if (driveRootMatch) {
+      return "@roots";
+    }
+    const separatorIndex = normalized.lastIndexOf("/");
+    if (separatorIndex <= 0) {
+      return "@roots";
+    }
+    const parent = normalized.slice(0, separatorIndex);
+    return /^[A-Za-z]:$/.test(parent) ? `${parent}/` : parent || "@roots";
+  }
+  const segments = normalized.split("/").filter(Boolean);
+  if (segments.length <= 1) {
+    return ".";
+  }
+  return segments.slice(0, -1).join("/");
+}
+
+function expandPathTrail(targetPath) {
+  const breadcrumbs = getPathBreadcrumbs(targetPath);
+  const expanded = new Set(state.pathTreeExpanded);
+  expanded.add(".");
+  expanded.add("@roots");
+  breadcrumbs.forEach((item) => expanded.add(item.path));
+  state.pathTreeExpanded = [...expanded];
+}
+
+function mergeContexts(baseContexts, preferredContext = "") {
+  const merged = [...baseContexts];
+  for (const externalContext of state.externalContexts) {
+    if (!merged.some((context) => context.relativePath === externalContext.relativePath)) {
+      merged.push(externalContext);
+    }
+  }
+  if (preferredContext && !merged.some((context) => context.relativePath === preferredContext)) {
+    merged.push({
+      relativePath: preferredContext,
+      label: preferredContext,
+      initialized: true,
+      isDefault: false,
+      external: isAbsoluteContextPath(preferredContext),
+    });
+  }
+  return merged;
+}
+
+function formatContextLabel(context) {
+  if (context.external || isAbsoluteContextPath(context.relativePath)) {
+    return `外部项目 · ${context.label || context.relativePath}`;
+  }
+  return context.label;
+}
+
+function loadExternalContexts() {
+  try {
+    return JSON.parse(localStorage.getItem("inkos-studio-external-contexts") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveExternalContexts() {
+  localStorage.setItem("inkos-studio-external-contexts", JSON.stringify(state.externalContexts));
+}
+
+function upsertExternalContext(contextPath, initialized = true) {
+  const normalized = normalizeContextPath(contextPath);
+  if (!isAbsoluteContextPath(normalized)) {
+    return;
+  }
+  state.externalContexts = [
+    {
+      relativePath: normalized,
+      label: normalized,
+      initialized,
+      isDefault: false,
+      external: true,
+    },
+    ...state.externalContexts.filter((context) => context.relativePath !== normalized),
+  ].slice(0, 8);
+  saveExternalContexts();
+}
+
+function normalizeContextPath(targetPath) {
+  const normalized = String(targetPath || ".").trim().replace(/\\/g, "/");
+  if (!normalized) {
+    return ".";
+  }
+  if (normalized === "@roots" || normalized === ".") {
+    return normalized;
+  }
+  if (/^[A-Za-z]:\/$/.test(normalized) || normalized === "/") {
+    return normalized;
+  }
+  return normalized.replace(/\/+$/, "");
+}
+
+function isAbsoluteContextPath(targetPath) {
+  return /^(?:[A-Za-z]:\/|\/)/.test(normalizeContextPath(targetPath));
 }
 
 function getFilteredHistory() {

@@ -400,41 +400,84 @@ inkos up                       # 守护进程模式
   <img src="assets/screenshot-terminal.png" width="700" alt="终端截图">
 </p>
 
-## 命令参考
+## 命令参考总览
 
-| 命令                                        | 说明                                                                   |
-| ------------------------------------------- | ---------------------------------------------------------------------- |
-| `inkos init [name]`                       | 初始化项目（省略 name 在当前目录初始化）                               |
-| `inkos book create`                       | 创建新书（`--chapter-words` 设定字数）                               |
-| `inkos book update [id]`                  | 修改书设置（`--chapter-words`、`--target-chapters`、`--status`） |
-| `inkos book list`                         | 列出所有书籍                                                           |
-| `inkos genre list/show/copy/create`       | 查看、复制、创建题材                                                   |
-| `inkos write next [id]`                   | 完整管线写下一章（`--words` 覆盖字数，`--count` 连写）             |
-| `inkos write rewrite [id] <n>`            | 重写第 N 章（恢复状态快照，需确认）                                    |
-| `inkos draft [id]`                        | 只写草稿（`--words` 覆盖字数）                                       |
-| `inkos audit [id] [n]`                    | 审计指定章节                                                           |
-| `inkos revise [id] [n]`                   | 修订指定章节                                                           |
-| `inkos agent <instruction>`               | 自然语言 Agent 模式                                                    |
-| `inkos review list [id]`                  | 审阅草稿                                                               |
-| `inkos review approve-all [id]`           | 批量通过                                                               |
-| `inkos status [id]`                       | 项目状态                                                               |
-| `inkos export [id]`                       | 导出书籍为 txt/md                                                      |
-| `inkos radar scan`                        | 扫描平台趋势                                                           |
-| `inkos config set-global`                 | 设置全局 LLM 配置（~/.inkos/.env）                                     |
-| `inkos config show-global`                | 查看全局配置                                                           |
-| `inkos config set/show`                   | 查看/更新项目配置                                                      |
-| `inkos config set-model <agent> <model>`  | 为指定 agent 设置模型覆盖                                              |
-| `inkos config remove-model <agent>`       | 移除 agent 模型覆盖（回退到默认）                                      |
-| `inkos config show-models`                | 查看当前模型路由                                                       |
-| `inkos doctor`                            | 诊断配置问题（含 API 连通性测试）                                      |
-| `inkos detect [id] [n]`                   | AIGC 检测（`--all` 全部章节，`--stats` 统计）                      |
-| `inkos style analyze <file>`              | 分析参考文本提取文风指纹                                               |
-| `inkos style import <file> [id]`          | 导入文风指纹到指定书                                                   |
-| `inkos import canon [id] --from <parent>` | 导入正传正典到番外书                                                   |
-| `inkos update`                            | 更新到最新版本                                                         |
-| `inkos up / down`                         | 启动/停止守护进程                                                      |
+以下总览按业务分组列出当前 CLI 的主要命令入口，和 `packages/cli/src/program.ts` 中的实际命令树保持一致。
 
-`[id]` 参数在项目只有一本书时可省略，自动检测。所有命令支持 `--json` 输出结构化数据。`draft`/`write next`/`book create` 支持 `--context` 传入创作指导，`--words` 覆盖每章字数（OpenClaw 可逐章动态控制）。
+### 项目与配置
+
+| 命令 | 说明 |
+| --- | --- |
+| `inkos init [name]` | 初始化 InkOS 项目；省略 `name` 时在当前目录初始化 |
+| `inkos status [book-id]` | 查看项目总览，或查看指定书籍状态 |
+| `inkos config set <key> <value>` | 更新当前项目配置 |
+| `inkos config show` | 查看当前项目配置 |
+| `inkos config set-global` | 设置全局 LLM 配置（`~/.inkos/.env`） |
+| `inkos config show-global` | 查看全局 LLM 配置 |
+| `inkos config set-model <agent> <model>` | 为指定 agent 设置模型覆盖 |
+| `inkos config remove-model <agent>` | 移除指定 agent 的模型覆盖 |
+| `inkos config show-models` | 查看所有 agent 的当前模型路由 |
+| `inkos doctor` | 检查环境、配置和 API 连通性 |
+| `inkos update` | 更新 InkOS 到最新版本 |
+
+### 书籍与创作
+
+| 命令 | 说明 |
+| --- | --- |
+| `inkos book create` | 创建新书，自动生成基础设定、卷纲和规则 |
+| `inkos book update [book-id]` | 更新书籍设置，如状态、目标章数、每章字数 |
+| `inkos book list` | 列出项目中的全部书籍 |
+| `inkos write next [book-id]` | 运行完整创作管线写下一章，支持 `--words`、`--count`、`--context` |
+| `inkos write rewrite [book-id] <chapter>` | 回滚状态快照并重写指定章节 |
+| `inkos draft [book-id]` | 只写草稿，不进入审计与修订流程 |
+| `inkos agent <instruction>` | 自然语言代理模式，由 LLM 自动编排工具调用 |
+
+### 审计、修订与审阅
+
+| 命令 | 说明 |
+| --- | --- |
+| `inkos audit [book-id] [chapter]` | 审计指定章节的连续性、设定与风格问题 |
+| `inkos revise [book-id] [chapter]` | 根据审计结果修订章节 |
+| `inkos review list [book-id]` | 查看待人工审阅或修订的章节 |
+| `inkos review approve [book-id] <chapter>` | 通过指定章节 |
+| `inkos review approve-all [book-id]` | 批量通过某本书的全部待审章节 |
+| `inkos review reject [book-id] <chapter> --reason <text>` | 驳回章节并写入审阅说明 |
+| `inkos detect [book-id] [chapter]` | 运行 AIGC 检测，支持 `--all` 和 `--stats` |
+
+### 题材、文风与情报
+
+| 命令 | 说明 |
+| --- | --- |
+| `inkos genre list` | 列出全部内置与项目题材规则 |
+| `inkos genre show <genre-id>` | 查看指定题材的完整规则 |
+| `inkos genre copy <genre-id>` | 复制内置题材到项目中进行覆盖和定制 |
+| `inkos genre create <genre-id>` | 在项目中创建新的题材模板 |
+| `inkos style analyze <file>` | 分析参考文本，提取文风指纹 |
+| `inkos style import <file> [book-id]` | 导入文风指纹并生成风格指南 |
+| `inkos radar scan` | 扫描平台趋势与市场机会 |
+| `inkos analytics [book-id]` | 查看书籍的章节、字数、问题类别与通过率统计 |
+
+### 导入与导出
+
+| 命令 | 说明 |
+| --- | --- |
+| `inkos import canon [book-id] --from <parent-book-id>` | 为番外书导入正传正典 |
+| `inkos import chapters [book-id] --from <path>` | 导入已有章节并反向构建真相文件，适合续写接管 |
+| `inkos export [book-id]` | 导出书籍章节为单个 txt 或 Markdown 文件 |
+
+### 调度与守护进程
+
+| 命令 | 说明 |
+| --- | --- |
+| `inkos up` | 启动守护进程，按调度计划自动执行写作流程 |
+| `inkos down` | 停止守护进程 |
+
+补充说明：
+
+- `[book-id]` 在项目只有一本书时通常可省略，CLI 会自动检测
+- 大多数读写与集成命令支持 `--json` 输出结构化结果，便于 Web UI 或外部 Agent 解析
+- `book create`、`draft`、`write next` 支持通过 `--context` 传入额外创作指导
+- `write next` 和 `draft` 支持通过 `--words` 覆盖当前章节字数目标
 
 ## 实测数据
 
@@ -496,9 +539,9 @@ inkos/
 │   │   ├── llm/           # OpenAI + Anthropic 双 SDK 接口 (流式)
 │   │   ├── notify/        # Telegram, 飞书, 企业微信, Webhook
 │   │   └── models/        # Zod schema 校验
-│   └── cli/               # Commander.js 命令行 (20 条命令)
-│       └── commands/      # init, book, write, draft, audit, revise, agent, review, detect, style...
-└── (规划中) studio/        # 网页审阅编辑界面
+│   ├── cli/               # Commander.js 命令行与命令实现
+│   │   └── commands/      # init, book, write, draft, audit, revise, agent, review, detect, style...
+│   └── web/               # 浏览器工作台，提供审阅、编辑与命令执行界面
 ```
 
 TypeScript 单仓库，pnpm workspaces 管理。
@@ -508,7 +551,7 @@ TypeScript 单仓库，pnpm workspaces 管理。
 - [X] 完整管线（雷达 → 建筑师 → 写手 → 审计 → 修订）
 - [X] 长期记忆 + 连续性审计
 - [X] 内置创作规则体系
-- [X] CLI 全套命令（20 条）
+- [X] CLI 全套命令体系
 - [X] 状态快照 + 章节重写
 - [X] 守护进程模式
 - [X] 通知推送（Telegram / 飞书 / 企微）
@@ -527,7 +570,7 @@ TypeScript 单仓库，pnpm workspaces 管理。
 - [X] 文风仿写（统计指纹 + LLM 风格指南 + 写手注入）
 - [X] 写后验证器（11 条硬规则 + 自动 spot-fix）
 - [X] 审计-修订闭环加固（AI 标记守卫 + 温度锁）
-- [X] `packages/studio` Web UI 审阅编辑界面
+- [X] `packages/web` 浏览器工作台审阅编辑界面
 - [X] 多模型路由（不同 agent 用不同模型，`inkos config set-model`）
 - [ ] 自定义 agent 插件系统
 - [ ] 平台格式导出（起点、番茄等）

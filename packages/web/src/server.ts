@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { dirname, extname, join, relative, resolve } from "node:path";
+import { dirname, extname, isAbsolute, join, parse, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Server } from "node:http";
 import { StateManager } from "@actalk/inkos-core";
@@ -32,6 +32,19 @@ interface ProjectCreatePayload {
   readonly targetPath?: string;
 }
 
+interface PathTreeNode {
+  readonly path: string;
+  readonly label: string;
+  readonly initialized: boolean;
+  readonly hasChildren: boolean;
+}
+
+interface PathTreeResponse {
+  readonly path: string;
+  readonly parentPath: string | null;
+  readonly nodes: ReadonlyArray<PathTreeNode>;
+}
+
 interface ChapterRequestPayload extends ChapterSavePayload {
   readonly contextPath?: string;
 }
@@ -39,6 +52,7 @@ interface ChapterRequestPayload extends ChapterSavePayload {
 const runtimeDir = dirname(fileURLToPath(import.meta.url));
 const host = "127.0.0.1";
 const port = parseInt(process.env.INKOS_STUDIO_PORT ?? "3210", 10);
+const filesystemRootsToken = "@roots";
 
 export interface StudioServerOptions {
   readonly publicDir?: string;
@@ -98,6 +112,11 @@ export function createStudioServer(options: StudioServerOptions = {}): Server {
           throw new Error("Missing or invalid query parameter: chapter");
         }
         return json(response, 200, await readChapterDocument(contextRoot, bookId, chapter));
+      }
+
+      if (request.method === "GET" && url.pathname === "/api/path-tree") {
+        const targetPath = url.searchParams.get("path") ?? ".";
+        return json(response, 200, await readPathTree(workspaceRoot, targetPath));
       }
 
       if (request.method === "POST" && url.pathname === "/api/chapter") {
@@ -261,11 +280,79 @@ async function listPathSuggestions(root: string, depth: number): Promise<Readonl
   return [...suggestions].sort((left, right) => left.localeCompare(right));
 }
 
+async function readPathTree(workspaceRoot: string, targetPath: string): Promise<PathTreeResponse> {
+  const root = resolvePathTreeRoot(workspaceRoot, targetPath);
+  if (!root.absolutePath) {
+    return {
+      path: filesystemRootsToken,
+      parentPath: null,
+      nodes: await listFilesystemRoots(),
+    };
+  }
+  const ignored = new Set([".git", "node_modules", "dist"]);
+  const entries = await readdir(root.absolutePath, { withFileTypes: true });
+  const nodes: PathTreeNode[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || ignored.has(entry.name)) {
+      continue;
+    }
+
+    const absolutePath = join(root.absolutePath, entry.name);
+    const hasChildren = await directoryHasVisibleChildren(absolutePath, ignored);
+    nodes.push({
+      path: toClientPath(workspaceRoot, absolutePath),
+      label: entry.name,
+      initialized: await exists(join(absolutePath, "inkos.json")),
+      hasChildren,
+    });
+  }
+
+  return {
+    path: root.clientPath,
+    parentPath: getParentClientPath(workspaceRoot, root.absolutePath, root.scope),
+    nodes: nodes.sort((left, right) => left.label.localeCompare(right.label)),
+  };
+}
+
+async function directoryHasVisibleChildren(dirPath: string, ignored: ReadonlySet<string>): Promise<boolean> {
+  const entries = await readdir(dirPath, { withFileTypes: true });
+  return entries.some((entry) => entry.isDirectory() && !ignored.has(entry.name));
+}
+
+async function listFilesystemRoots(): Promise<ReadonlyArray<PathTreeNode>> {
+  const roots: PathTreeNode[] = [];
+  const ignored = new Set([".git", "node_modules", "dist"]);
+
+  if (process.platform === "win32") {
+    for (let code = 65; code <= 90; code += 1) {
+      const drive = `${String.fromCharCode(code)}:/`;
+      if (!(await exists(drive))) {
+        continue;
+      }
+      roots.push({
+        path: drive,
+        label: drive.replace(/\/$/, ""),
+        initialized: await exists(join(drive, "inkos.json")),
+        hasChildren: await directoryHasVisibleChildren(drive, ignored),
+      });
+    }
+    return roots;
+  }
+
+  return [{
+    path: "/",
+    label: "/",
+    initialized: await exists(join("/", "inkos.json")),
+    hasChildren: await directoryHasVisibleChildren("/", ignored),
+  }];
+}
+
 async function readDashboard(workspaceRoot: string, contextRoot: string): Promise<Record<string, unknown>> {
   const initialized = await exists(join(contextRoot, "inkos.json"));
   if (!initialized) {
     return {
-      contextPath: normalizeRelativePath(relative(workspaceRoot, contextRoot) || "."),
+      contextPath: toClientPath(workspaceRoot, contextRoot),
       initialized: false,
       books: [],
       pendingReviews: [],
@@ -324,7 +411,7 @@ async function readDashboard(workspaceRoot: string, contextRoot: string): Promis
   }
 
   return {
-    contextPath: normalizeRelativePath(relative(workspaceRoot, contextRoot) || "."),
+    contextPath: toClientPath(workspaceRoot, contextRoot),
     initialized: true,
     books,
     pendingReviews: pendingReviews.sort((left, right) => left.chapter - right.chapter),
@@ -355,7 +442,7 @@ async function executeCommand(workspaceRoot: string, cliEntry: string, payload: 
 
   return {
     commandPath: command.path,
-    contextPath: normalizeRelativePath(relative(workspaceRoot, contextRoot) || "."),
+    contextPath: toClientPath(workspaceRoot, contextRoot),
     argv: ["inkos", ...argv],
     exitCode: result.exitCode,
     ok: result.exitCode === 0,
@@ -378,9 +465,9 @@ async function createProject(workspaceRoot: string, payload: ProjectCreatePayloa
 
   return {
     ok: true,
-    createdContext: normalizeRelativePath(relative(workspaceRoot, projectRoot) || "."),
+    createdContext: toClientPath(workspaceRoot, projectRoot),
     projectName: initialized.projectName,
-    projectPath: normalizeRelativePath(relative(workspaceRoot, projectRoot) || "."),
+    projectPath: toClientPath(workspaceRoot, projectRoot),
     contexts,
     pathSuggestions: await listPathSuggestions(workspaceRoot, 3),
   };
@@ -486,15 +573,18 @@ function tryParseJson(text: string): unknown {
 }
 
 function resolveContextRoot(workspaceRoot: string, relativePath?: string | null): string {
-  const target = normalizeRelativePath(relativePath ?? ".");
-  const absolutePath = resolve(workspaceRoot, target);
-  const delta = relative(workspaceRoot, absolutePath).replace(/\\/g, "/");
-
-  if (delta === "" || delta === ".") {
-    return absolutePath;
+  const rawPath = String(relativePath ?? ".").trim();
+  if (!rawPath || rawPath === ".") {
+    return workspaceRoot;
   }
 
-  if (delta.startsWith("..") || resolve(workspaceRoot, delta) !== absolutePath) {
+  if (isAbsolute(rawPath)) {
+    return resolve(rawPath);
+  }
+
+  const target = normalizeRelativePath(rawPath);
+  const absolutePath = resolve(workspaceRoot, target);
+  if (!isWithinBasePath(workspaceRoot, absolutePath)) {
     throw new Error(`Context path escapes the workspace: ${relativePath}`);
   }
 
@@ -506,11 +596,101 @@ function normalizeRelativePath(relativePath: string): string {
 }
 
 function normalizeProjectTargetPath(targetPath?: string): string {
-  const normalized = normalizeRelativePath(String(targetPath ?? "").trim());
+  const rawPath = String(targetPath ?? "").trim();
+  if (!rawPath) {
+    throw new Error("Missing required field: targetPath");
+  }
+
+  if (isAbsolute(rawPath)) {
+    return normalizeAbsolutePath(resolve(rawPath));
+  }
+
+  const normalized = normalizeRelativePath(rawPath);
   if (!normalized || normalized === ".") {
     throw new Error("Missing required field: targetPath");
   }
   return normalized.replace(/^\.\//, "");
+}
+
+function resolvePathTreeRoot(workspaceRoot: string, targetPath?: string | null): {
+  readonly clientPath: string;
+  readonly absolutePath: string | null;
+  readonly scope: "workspace" | "absolute" | "roots";
+} {
+  const rawPath = String(targetPath ?? ".").trim();
+  if (!rawPath || rawPath === ".") {
+    return {
+      clientPath: ".",
+      absolutePath: workspaceRoot,
+      scope: "workspace",
+    };
+  }
+
+  if (rawPath === filesystemRootsToken) {
+    return {
+      clientPath: filesystemRootsToken,
+      absolutePath: null,
+      scope: "roots",
+    };
+  }
+
+  if (isAbsolute(rawPath)) {
+    return {
+      clientPath: normalizeAbsolutePath(resolve(rawPath)),
+      absolutePath: resolve(rawPath),
+      scope: "absolute",
+    };
+  }
+
+  const absolutePath = resolveContextRoot(workspaceRoot, rawPath);
+  return {
+    clientPath: normalizeRelativePath(rawPath),
+    absolutePath,
+    scope: "workspace",
+  };
+}
+
+function getParentClientPath(workspaceRoot: string, absolutePath: string, scope: "workspace" | "absolute" | "roots"): string | null {
+  if (scope === "roots") {
+    return null;
+  }
+
+  if (scope === "workspace") {
+    if (resolve(workspaceRoot) === resolve(absolutePath)) {
+      return null;
+    }
+    const parentAbsolutePath = dirname(absolutePath);
+    return toClientPath(workspaceRoot, parentAbsolutePath);
+  }
+
+  const rootPath = normalizeAbsolutePath(parse(absolutePath).root);
+  const currentPath = normalizeAbsolutePath(absolutePath);
+  if (currentPath === rootPath) {
+    return filesystemRootsToken;
+  }
+  return normalizeAbsolutePath(dirname(absolutePath));
+}
+
+function toClientPath(workspaceRoot: string, absolutePath: string): string {
+  if (isWithinBasePath(workspaceRoot, absolutePath)) {
+    return normalizeRelativePath(relative(workspaceRoot, absolutePath) || ".");
+  }
+  return normalizeAbsolutePath(absolutePath);
+}
+
+function normalizeAbsolutePath(targetPath: string): string {
+  const normalized = targetPath.replace(/\\/g, "/");
+  if (/^[A-Za-z]:\/$/.test(normalized) || normalized === "/") {
+    return normalized;
+  }
+  return normalized.replace(/\/+$/, "");
+}
+
+function isWithinBasePath(basePath: string, targetPath: string): boolean {
+  const absoluteBasePath = resolve(basePath);
+  const absoluteTargetPath = resolve(targetPath);
+  const delta = relative(absoluteBasePath, absoluteTargetPath).replace(/\\/g, "/");
+  return delta === "" || delta === "." || (!delta.startsWith("..") && resolve(absoluteBasePath, delta) === absoluteTargetPath);
 }
 
 async function serveStaticAsset(publicDir: string, pathname: string, response: import("node:http").ServerResponse): Promise<void> {

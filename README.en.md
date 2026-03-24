@@ -385,41 +385,84 @@ inkos up                          # Daemon mode
   <img src="assets/screenshot-terminal.png" width="700" alt="Terminal screenshot">
 </p>
 
-## CLI Reference
+## CLI Reference Overview
 
-| Command                                     | Description                                                                        |
-| ------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `inkos init [name]`                       | Initialize project (omit name to init current directory)                           |
-| `inkos book create`                       | Create a new book (`--chapter-words` to set word count)                          |
-| `inkos book update [id]`                  | Update book settings (`--chapter-words`, `--target-chapters`, `--status`)    |
-| `inkos book list`                         | List all books                                                                     |
-| `inkos genre list/show/copy/create`       | View, copy, or create genres                                                       |
-| `inkos write next [id]`                   | Full pipeline: write next chapter (`--words` to override, `--count` for batch) |
-| `inkos write rewrite [id] <n>`            | Rewrite chapter N (restores state snapshot, requires confirmation)                 |
-| `inkos draft [id]`                        | Write draft only (`--words` to override word count)                              |
-| `inkos audit [id] [n]`                    | Audit a specific chapter                                                           |
-| `inkos revise [id] [n]`                   | Revise a specific chapter                                                          |
-| `inkos agent <instruction>`               | Natural language agent mode                                                        |
-| `inkos review list [id]`                  | Review drafts                                                                      |
-| `inkos review approve-all [id]`           | Batch approve                                                                      |
-| `inkos status [id]`                       | Project status                                                                     |
-| `inkos export [id]`                       | Export book to txt/md                                                              |
-| `inkos radar scan`                        | Scan platform trends                                                               |
-| `inkos config set-global`                 | Set global LLM config (~/.inkos/.env)                                              |
-| `inkos config show-global`                | Show global config                                                                 |
-| `inkos config set/show`                   | View/update project config                                                         |
-| `inkos config set-model <agent> <model>`  | Set model override for a specific agent                                            |
-| `inkos config remove-model <agent>`       | Remove agent model override (fall back to default)                                 |
-| `inkos config show-models`                | Show current model routing                                                         |
-| `inkos doctor`                            | Diagnose setup issues (includes API connectivity test)                             |
-| `inkos detect [id] [n]`                   | AIGC detection (`--all` for all chapters, `--stats` for statistics)            |
-| `inkos style analyze <file>`              | Analyze reference text to extract style fingerprint                                |
-| `inkos style import <file> [id]`          | Import style fingerprint into a book                                               |
-| `inkos import canon [id] --from <parent>` | Import parent canon for spinoff writing                                            |
-| `inkos update`                            | Update to latest version                                                           |
-| `inkos up / down`                         | Start/stop daemon                                                                  |
+The reference below groups the current CLI entry points by business area and matches the actual command tree in `packages/cli/src/program.ts`.
 
-`[id]` is auto-detected when the project has only one book. All commands support `--json` for structured output. `draft`/`write next`/`book create` support `--context` for writing guidance and `--words` to override per-chapter word count (OpenClaw can dynamically control this per chapter).
+### Project and Configuration
+
+| Command | Description |
+| --- | --- |
+| `inkos init [name]` | Initialize an InkOS project. Omit `name` to initialize the current directory. |
+| `inkos status [book-id]` | Show project overview, or inspect a specific book. |
+| `inkos config set <key> <value>` | Update the current project configuration. |
+| `inkos config show` | Show the current project configuration. |
+| `inkos config set-global` | Set global LLM configuration in `~/.inkos/.env`. |
+| `inkos config show-global` | Show global LLM configuration. |
+| `inkos config set-model <agent> <model>` | Override the model used by a specific agent. |
+| `inkos config remove-model <agent>` | Remove an agent-specific model override. |
+| `inkos config show-models` | Show the effective model routing for all agents. |
+| `inkos doctor` | Diagnose environment, configuration, and API connectivity. |
+| `inkos update` | Update InkOS to the latest version. |
+
+### Books and Writing
+
+| Command | Description |
+| --- | --- |
+| `inkos book create` | Create a new book with base setup, outline, and rules. |
+| `inkos book update [book-id]` | Update book settings such as status, target chapters, or chapter length. |
+| `inkos book list` | List all books in the project. |
+| `inkos write next [book-id]` | Run the full writing pipeline for the next chapter. Supports `--words`, `--count`, and `--context`. |
+| `inkos write rewrite [book-id] <chapter>` | Restore the snapshot before a chapter and rewrite it. |
+| `inkos draft [book-id]` | Draft only, without audit or revise steps. |
+| `inkos agent <instruction>` | Natural-language agent mode with LLM-driven tool orchestration. |
+
+### Audit, Revise, and Review
+
+| Command | Description |
+| --- | --- |
+| `inkos audit [book-id] [chapter]` | Audit a chapter for continuity, setting, and style issues. |
+| `inkos revise [book-id] [chapter]` | Revise a chapter from audit findings. |
+| `inkos review list [book-id]` | List chapters waiting for manual review or follow-up. |
+| `inkos review approve [book-id] <chapter>` | Approve a specific chapter. |
+| `inkos review approve-all [book-id]` | Approve all pending chapters for a book. |
+| `inkos review reject [book-id] <chapter> --reason <text>` | Reject a chapter and store the review note. |
+| `inkos detect [book-id] [chapter]` | Run AIGC detection. Supports `--all` and `--stats`. |
+
+### Genres, Style, and Intelligence
+
+| Command | Description |
+| --- | --- |
+| `inkos genre list` | List built-in and project-level genre rules. |
+| `inkos genre show <genre-id>` | Show the full rules for a genre. |
+| `inkos genre copy <genre-id>` | Copy a built-in genre into the project for customization. |
+| `inkos genre create <genre-id>` | Create a new project genre template. |
+| `inkos style analyze <file>` | Analyze reference prose and extract a style fingerprint. |
+| `inkos style import <file> [book-id]` | Import a style fingerprint and generate a style guide. |
+| `inkos radar scan` | Scan platform trends and market opportunities. |
+| `inkos analytics [book-id]` | Show chapter, word-count, issue-category, and pass-rate statistics. |
+
+### Import and Export
+
+| Command | Description |
+| --- | --- |
+| `inkos import canon [book-id] --from <parent-book-id>` | Import canon from a parent book for spinoff writing. |
+| `inkos import chapters [book-id] --from <path>` | Import existing chapters and reconstruct truth files for takeover writing. |
+| `inkos export [book-id]` | Export chapters as a single txt or Markdown file. |
+
+### Scheduling and Daemon
+
+| Command | Description |
+| --- | --- |
+| `inkos up` | Start the daemon and run writing jobs on schedule. |
+| `inkos down` | Stop the daemon. |
+
+Notes:
+
+- `[book-id]` can usually be omitted when the project contains only one book.
+- Most read/write and integration commands support `--json` for structured output.
+- `book create`, `draft`, and `write next` support `--context` for extra writing guidance.
+- `draft` and `write next` support `--words` to override the chapter word target.
 
 ## Key Features
 
@@ -463,9 +506,9 @@ inkos/
 │   │   ├── llm/           # OpenAI + Anthropic dual SDK (streaming)
 │   │   ├── notify/        # Telegram, Feishu, WeCom, Webhook
 │   │   └── models/        # Zod schema validation
-│   └── cli/               # Commander.js CLI (20 commands)
-│       └── commands/      # init, book, write, draft, audit, revise, agent, review, detect, style...
-└── (planned) studio/      # Web UI for review and editing
+│   ├── cli/               # Commander.js CLI and command implementations
+│   │   └── commands/      # init, book, write, draft, audit, revise, agent, review, detect, style...
+│   └── web/               # Browser studio for review, editing, and command execution
 ```
 
 TypeScript monorepo managed with pnpm workspaces.
@@ -475,7 +518,7 @@ TypeScript monorepo managed with pnpm workspaces.
 - [X] Full pipeline (radar → architect → writer → auditor → reviser)
 - [X] Canonical truth files + continuity audit
 - [X] Built-in writing rule system
-- [X] Full CLI (20 commands)
+- [X] Full CLI command suite
 - [X] State snapshots + chapter rewrite
 - [X] Daemon mode
 - [X] Notifications (Telegram / Feishu / WeCom)
@@ -494,7 +537,7 @@ TypeScript monorepo managed with pnpm workspaces.
 - [X] AIGC detection + anti-detect rewrite pipeline
 - [X] Webhook notifications + smart scheduler (quality gates)
 - [X] Cross-chapter coherence (chapter summaries + subplot/emotion/character matrices)
-- [X] `packages/studio` Web UI for review and editing
+- [X] `packages/web` browser studio for review and editing
 - [X] Multi-model routing (different models for different agents, `inkos config set-model`)
 - [ ] Custom agent plugin system
 - [ ] Platform-specific export (Qidian, Tomato, etc.)

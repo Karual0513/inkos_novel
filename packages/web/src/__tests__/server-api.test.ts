@@ -1,6 +1,7 @@
 import type { AddressInfo } from "node:net";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { join, parse, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createStudioServer } from "../server.js";
 import { createTempInkosWorkspace, removeTempInkosWorkspace } from "./test-helpers.js";
@@ -96,13 +97,28 @@ interface ProjectCreateResponse {
   readonly pathSuggestions: ReadonlyArray<string>;
 }
 
+interface PathTreeNode {
+  readonly path: string;
+  readonly label: string;
+  readonly initialized: boolean;
+  readonly hasChildren: boolean;
+}
+
+interface PathTreeResponse {
+  readonly path: string;
+  readonly parentPath: string | null;
+  readonly nodes: ReadonlyArray<PathTreeNode>;
+}
+
 describe("server api", () => {
   let workspaceRoot: string;
   let server: Awaited<ReturnType<typeof createStudioServer>>;
   let baseUrl: string;
+  let extraDirectories: string[];
 
   beforeEach(async () => {
     workspaceRoot = await createTempInkosWorkspace();
+    extraDirectories = [];
     server = createStudioServer({
       workspaceRoot,
       cliEntry: join(workspaceRoot, "packages", "cli", "dist", "index.js"),
@@ -126,6 +142,7 @@ describe("server api", () => {
       });
     });
     await removeTempInkosWorkspace(workspaceRoot);
+    await Promise.all(extraDirectories.map((dirPath) => rm(dirPath, { recursive: true, force: true })));
   });
 
   it("returns chapter list from GET /api/chapters", async () => {
@@ -370,6 +387,105 @@ describe("server api", () => {
     expect(dashboardResponse.status).toBe(200);
     expect(dashboardPayload.initialized).toBe(true);
     expect(dashboardPayload.books).toEqual([]);
+  });
+
+  it("creates project through POST /api/projects with absolute path", async () => {
+    const externalRoot = await mkdtemp(join(tmpdir(), "inkos-web-absolute-project-"));
+    const projectTarget = join(externalRoot, "outside-project");
+    extraDirectories.push(externalRoot);
+
+    const response = await fetch(`${baseUrl}/api/projects`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        targetPath: projectTarget,
+      }),
+    });
+    const payload = await response.json() as ProjectCreateResponse;
+    const normalizedProjectTarget = resolve(projectTarget).replace(/\\/g, "/");
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      ok: true,
+      createdContext: normalizedProjectTarget,
+      projectName: "outside-project",
+      projectPath: normalizedProjectTarget,
+    });
+
+    const dashboardResponse = await fetch(`${baseUrl}/api/dashboard?context=${encodeURIComponent(normalizedProjectTarget)}`);
+    const dashboardPayload = await dashboardResponse.json() as DashboardResponse;
+    expect(dashboardResponse.status).toBe(200);
+    expect(dashboardPayload).toMatchObject({
+      contextPath: normalizedProjectTarget,
+      initialized: true,
+    });
+  });
+
+  it("returns directory tree from GET /api/path-tree", async () => {
+    await mkdir(join(workspaceRoot, "sandbox", "child-project"), { recursive: true });
+    await mkdir(join(workspaceRoot, "sandbox", "drafts"), { recursive: true });
+    await writeFile(join(workspaceRoot, "sandbox", "child-project", "inkos.json"), JSON.stringify({ name: "child-project" }, null, 2), "utf-8");
+
+    const rootResponse = await fetch(`${baseUrl}/api/path-tree?path=.`);
+    const rootPayload = await rootResponse.json() as PathTreeResponse;
+
+    expect(rootResponse.status).toBe(200);
+    expect(rootPayload.path).toBe(".");
+    expect(rootPayload.nodes.some((node) => node.path === "sandbox" && node.hasChildren)).toBe(true);
+
+    const childResponse = await fetch(`${baseUrl}/api/path-tree?path=sandbox`);
+    const childPayload = await childResponse.json() as PathTreeResponse;
+
+    expect(childResponse.status).toBe(200);
+    expect(childPayload.path).toBe("sandbox");
+    expect(childPayload.parentPath).toBe(".");
+    expect(childPayload.nodes).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        path: "sandbox/child-project",
+        initialized: true,
+      }),
+      expect.objectContaining({
+        path: "sandbox/drafts",
+        initialized: false,
+      }),
+    ]));
+  });
+
+  it("returns filesystem roots and absolute directory tree from GET /api/path-tree", async () => {
+    const externalRoot = await mkdtemp(join(tmpdir(), "inkos-web-absolute-tree-"));
+    const childProject = join(externalRoot, "child-project");
+    const draftsDir = join(externalRoot, "drafts");
+    extraDirectories.push(externalRoot);
+
+    await mkdir(childProject, { recursive: true });
+    await mkdir(draftsDir, { recursive: true });
+    await writeFile(join(childProject, "inkos.json"), JSON.stringify({ name: "child-project" }, null, 2), "utf-8");
+
+    const rootsResponse = await fetch(`${baseUrl}/api/path-tree?path=${encodeURIComponent("@roots")}`);
+    const rootsPayload = await rootsResponse.json() as PathTreeResponse;
+    const driveRoot = parse(resolve(workspaceRoot)).root.replace(/\\/g, "/");
+    const normalizedExternalRoot = resolve(externalRoot).replace(/\\/g, "/");
+
+    expect(rootsResponse.status).toBe(200);
+    expect(rootsPayload.path).toBe("@roots");
+    expect(rootsPayload.nodes.some((node) => node.path === driveRoot)).toBe(true);
+
+    const absoluteResponse = await fetch(`${baseUrl}/api/path-tree?path=${encodeURIComponent(normalizedExternalRoot)}`);
+    const absolutePayload = await absoluteResponse.json() as PathTreeResponse;
+
+    expect(absoluteResponse.status).toBe(200);
+    expect(absolutePayload.path).toBe(normalizedExternalRoot);
+    expect(absolutePayload.parentPath).toBe(parse(normalizedExternalRoot).root.replace(/\\/g, "/") === normalizedExternalRoot ? "@roots" : resolve(normalizedExternalRoot, "..").replace(/\\/g, "/"));
+    expect(absolutePayload.nodes).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        path: `${normalizedExternalRoot}/child-project`,
+        initialized: true,
+      }),
+      expect.objectContaining({
+        path: `${normalizedExternalRoot}/drafts`,
+        initialized: false,
+      }),
+    ]));
   });
 });
 
