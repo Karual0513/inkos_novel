@@ -54,7 +54,7 @@ const TOOLS = [
             type: "object",
             properties: {
                 title: { type: "string", description: "书名" },
-                genre: { type: "string", enum: ["apocalypse", "interstellar", "onlinegame", "rebirth", "system", "xuanhuan", "xianxia", "urban", "horror", "other"], description: "题材" },
+                genre: { type: "string", enum: ["xuanhuan", "xianxia", "urban", "horror", "rebirth", "system", "onlinegame", "apocalypse", "interstellar", "infinite", "strange-rules", "lord", "management", "family", "court-politics", "entertainment", "simulator", "checkin", "cyberpunk", "harem-household", "detective", "tycoon", "multiverse", "mastermind", "identities", "medical", "esports", "folklore", "mecha", "son-in-law", "treasure", "conquest", "construction", "arranged-love", "chasing-love", "parenting", "workplace", "quick-transmigration", "period-life", "showbiz", "female-mystery", "healing", "locked-room", "cthulhu", "survival-horror", "campus-horror", "livestream-horror", "time-loop", "ai-awakening", "first-contact", "space-colony", "hard-sf", "wasteland", "espionage", "bureaucracy", "business-war", "legal", "archaeology", "travel-adventure", "sports", "other"], description: "题材" },
                 platform: { type: "string", enum: ["tomato", "feilu", "qidian", "other"], description: "目标平台" },
                 brief: { type: "string", description: "创作简述/需求（自然语言）" },
             },

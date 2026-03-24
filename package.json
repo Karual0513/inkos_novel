@@ -9,15 +9,15 @@
     "url": "https://github.com/Narcooo/inkos"
   },
   "scripts": {
-    "build": "pnpm -r build",
-    "dev": "pnpm -r dev",
+    "build": "corepack pnpm -r build",
+    "dev": "corepack pnpm -r dev",
     "sync:genres": "node ./scripts/sync-genres.mjs",
     "studio": "corepack pnpm --filter @actalk/inkos-core build && corepack pnpm --filter @actalk/inkos build && corepack pnpm --filter @actalk/inkos-web build && corepack pnpm --filter @actalk/inkos-web start",
     "studio:build": "corepack pnpm --filter @actalk/inkos-core build && corepack pnpm --filter @actalk/inkos build && corepack pnpm --filter @actalk/inkos-web build",
-    "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "release": "pnpm build && pnpm test && pnpm -r --filter './packages/*' publish --no-git-checks"
+    "test": "corepack pnpm -r test",
+    "lint": "corepack pnpm -r lint",
+    "typecheck": "corepack pnpm -r typecheck",
+    "release": "corepack pnpm build && corepack pnpm test && corepack pnpm -r --filter './packages/*' publish --no-git-checks"
   },
   "engines": {
     "node": ">=20.0.0",
