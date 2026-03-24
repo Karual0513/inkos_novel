@@ -1,0 +1,612 @@
+[
+  {
+    "id": "xuanhuan",
+    "zh": "玄幻",
+    "en": "Xuanhuan (Fantasy)",
+    "zhRules": "数值系统、战力体系、同质吞噬衰减公式、打脸/升级/收益兑现节奏",
+    "enRules": "Numerical system, power scaling, same-type absorption decay formula, face-slap/upgrade/payoff pacing",
+    "listBucket": "core",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  },
+  {
+    "id": "xianxia",
+    "zh": "仙侠",
+    "en": "Xianxia (Cultivation)",
+    "zhRules": "修炼/悟道节奏、法宝体系、天道规则",
+    "enRules": "Cultivation/enlightenment pacing, artifact system, heavenly dao rules",
+    "listBucket": "core",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  },
+  {
+    "id": "urban",
+    "zh": "都市",
+    "en": "Urban",
+    "zhRules": "年代考据、商战/社交驱动、法律术语年代匹配、无数值系统",
+    "enRules": "Era research, business/social-driven plot, era-matched legal terminology, no numerical system",
+    "listBucket": "core",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  },
+  {
+    "id": "horror",
+    "zh": "恐怖",
+    "en": "Horror",
+    "zhRules": "氛围递进、恐惧层级、克制叙事、无战力审计",
+    "enRules": "Atmosphere progression, fear levels, restrained narration, no power scaling audit",
+    "listBucket": "core",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  },
+  {
+    "id": "rebirth",
+    "zh": "重生流",
+    "en": "Rebirth",
+    "zhRules": "时间差优势、蝴蝶效应代价、命运改写与信息兑现",
+    "enRules": "Time-advantage payoff, butterfly-effect cost, destiny rewrite under uncertainty",
+    "listBucket": "existing-extension",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  },
+  {
+    "id": "system",
+    "zh": "系统流",
+    "en": "System",
+    "zhRules": "任务/奖励/惩罚闭环、系统边界、账本一致性",
+    "enRules": "Task/reward/penalty loop, system boundaries, ledger consistency",
+    "listBucket": "existing-extension",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  },
+  {
+    "id": "onlinegame",
+    "zh": "网游数据流",
+    "en": "Onlinegame",
+    "zhRules": "面板与掉落可追踪、副本机制、团队与版本博弈",
+    "enRules": "Trackable stats and drops, raid mechanics, team and meta competition",
+    "listBucket": "existing-extension",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  },
+  {
+    "id": "apocalypse",
+    "zh": "末日生存流",
+    "en": "Apocalypse",
+    "zhRules": "资源衰减、据点维护、威胁升级与生存规则发现",
+    "enRules": "Resource decay, shelter maintenance, threat escalation, survival-rule discovery",
+    "listBucket": "existing-extension",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  },
+  {
+    "id": "interstellar",
+    "zh": "星际流",
+    "en": "Interstellar",
+    "zhRules": "文明层级、航线与补给成本、科技边界、战略博弈",
+    "enRules": "Civilizational scale, route and supply costs, tech boundaries, strategic conflict",
+    "listBucket": "existing-extension",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  },
+  {
+    "id": "infinite",
+    "zh": "无限流",
+    "en": "Infinite",
+    "zhRules": "副本规则、团队协作、试错破局、阶段结算与跨副本代价",
+    "enRules": "Instance rules, team survival, staged settlement, cross-instance consequences",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "strange-rules",
+    "zh": "规则怪谈",
+    "en": "Strange-Rules",
+    "zhRules": "真伪规则识别、违规则果、秩序扭曲与高压求生",
+    "enRules": "True/false rules, violation penalties, distorted order, high-pressure survival",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "lord",
+    "zh": "领主流",
+    "en": "Lord",
+    "zhRules": "领地建设、人口资源、兵种养成、扩张与治理成本",
+    "enRules": "Territory building, population and resource loops, military growth, expansion governance",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "management",
+    "zh": "经营流",
+    "en": "Management",
+    "zhRules": "收支结构、客流口碑、扩店节奏、供应链与竞争博弈",
+    "enRules": "Revenue-cost structure, customer flow, expansion pacing, supply-chain competition",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "family",
+    "zh": "家族流",
+    "en": "Family",
+    "zhRules": "血缘结构、继承分配、家业经营、多角色长期关系变化",
+    "enRules": "Bloodline structure, inheritance pressure, family business operation, multi-character arcs",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "court-politics",
+    "zh": "朝堂权谋",
+    "en": "Court-Politics",
+    "zhRules": "名分与程序、派系站队、政策博弈、权力回收",
+    "enRules": "Rank and procedure, faction alignment, policy conflict, power recovery",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "entertainment",
+    "zh": "文娱流",
+    "en": "Entertainment",
+    "zhRules": "作品产出、舆论发酵、资源升级、行业反馈",
+    "enRules": "Creative output, public buzz, resource upgrade, industry feedback",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "simulator",
+    "zh": "模拟器流",
+    "en": "Simulator",
+    "zhRules": "模拟推演、现实偏差、结算收益、分支修正",
+    "enRules": "Simulation runs, reality deviation, settlement rewards, branch correction",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "checkin",
+    "zh": "签到流",
+    "en": "Checkin",
+    "zhRules": "地点触发、连签奖励、边界利用、阶段性成长",
+    "enRules": "Location-triggered rewards, streak mechanics, boundary exploitation, staged growth",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "cyberpunk",
+    "zh": "赛博朋克",
+    "en": "Cyberpunk",
+    "zhRules": "义体升级、公司压迫、黑市交易、身份异化",
+    "enRules": "Body mods, corporate pressure, black-market trade, identity drift",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "科幻未来"
+  },
+  {
+    "id": "harem-household",
+    "zh": "宫斗宅斗",
+    "en": "Harem-Household",
+    "zhRules": "礼法秩序、名分争夺、内宅博弈、压抑反击",
+    "enRules": "Ritual order, rank competition, inner-house intrigue, suppressed retaliation",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "detective",
+    "zh": "刑侦推理",
+    "en": "Detective",
+    "zhRules": "证据链、排查推进、逻辑闭环、真凶回收",
+    "enRules": "Evidence chains, procedural investigation, logical closure, culprit reveal",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "悬疑惊悚"
+  },
+  {
+    "id": "tycoon",
+    "zh": "神豪流",
+    "en": "Tycoon",
+    "zhRules": "财富兑现、身份翻盘、资源重组、圈层突破",
+    "enRules": "Wealth payout loops, status reversal, resource reallocation, access to elite circles",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "优先推荐"
+  },
+  {
+    "id": "multiverse",
+    "zh": "诸天流",
+    "en": "Multiverse",
+    "zhRules": "多世界切换、规则适应、世界收获、总主线回收",
+    "enRules": "World-hopping, rule adaptation, cross-world rewards, long-arc mainline recovery",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "mastermind",
+    "zh": "幕后流",
+    "en": "Mastermind",
+    "zhRules": "落子布局、误导对手、代理链执行、收网回收",
+    "enRules": "Piece placement, misdirection, proxy execution, net-closing payoff",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "identities",
+    "zh": "马甲流",
+    "en": "Identities",
+    "zhRules": "多身份切换、误导成立、掉马风险、关系反转",
+    "enRules": "Multi-identity rotation, disguise pressure, reveal risk, relationship reversal",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "medical",
+    "zh": "医道流",
+    "en": "Medical",
+    "zhRules": "诊断链、治疗风险、职业成长、医疗伦理与行业博弈",
+    "enRules": "Diagnostic chains, treatment risk, professional growth, ethics and hospital politics",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "esports",
+    "zh": "电竞流",
+    "en": "Esports",
+    "zhRules": "训练复盘、版本理解、赛事推进、团队协同",
+    "enRules": "Training review, meta understanding, tournament pacing, team coordination",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "folklore",
+    "zh": "民俗怪谈",
+    "en": "Folklore",
+    "zhRules": "地域禁忌、仪式规则、乡土恐惧、因果回收",
+    "enRules": "Regional taboos, ritual rules, village dread, cause-and-effect closure",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "悬疑惊悚"
+  },
+  {
+    "id": "mecha",
+    "zh": "机甲流",
+    "en": "Mecha",
+    "zhRules": "机体定位、整备升级、战术协同、战场损耗",
+    "enRules": "Unit roles, maintenance upgrades, tactical coordination, battlefield attrition",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "科幻未来"
+  },
+  {
+    "id": "son-in-law",
+    "zh": "赘婿逆袭流",
+    "en": "Son-in-Law",
+    "zhRules": "身份压制、长期隐忍、筹码回收、地位翻盘",
+    "enRules": "Status suppression, long-term restraint, leverage payoff, social reversal",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "treasure",
+    "zh": "鉴宝捡漏流",
+    "en": "Treasure",
+    "zhRules": "真伪判断、捡漏兑现、行内博弈、名声建立",
+    "enRules": "Authenticity judgment, undervalued finds, insider bargaining, reputation building",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "conquest",
+    "zh": "历史争霸流",
+    "en": "Conquest",
+    "zhRules": "地盘扩张、兵源粮草、名分博弈、治政回收",
+    "enRules": "Territorial expansion, troop and grain logistics, legitimacy conflict, governance follow-through",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "construction",
+    "zh": "种田基建流",
+    "en": "Construction",
+    "zhRules": "开荒扩产、设施落地、组织配套、生活改善",
+    "enRules": "Land reclamation, facility rollout, organizational support, living-standard improvement",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "arranged-love",
+    "zh": "先婚后爱",
+    "en": "Arranged-Love",
+    "zhRules": "婚姻磨合、误判修正、共同对外、感情升温",
+    "enRules": "Marriage friction, misread correction, united front moments, emotional warming",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "chasing-love",
+    "zh": "追妻火葬场",
+    "en": "Chasing-Love",
+    "zhRules": "前账回收、追悔补偿、关系重构、女主清醒",
+    "enRules": "Old wounds repaid, regret and compensation, relationship rebuild, heroine clarity",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "parenting",
+    "zh": "养崽流",
+    "en": "Parenting",
+    "zhRules": "陪伴成长、抚养压力、家庭治愈、双向救赎",
+    "enRules": "Everyday care, parenting pressure, family healing, mutual redemption",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "workplace",
+    "zh": "职场成长流",
+    "en": "Workplace",
+    "zhRules": "项目推进、组织博弈、绩效反馈、晋升与转型",
+    "enRules": "Project delivery, organizational politics, performance feedback, promotion and transition",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "quick-transmigration",
+    "zh": "快穿流",
+    "en": "Quick-Transmigration",
+    "zhRules": "多世界任务、身份切换、阶段结算、主线真相推进",
+    "enRules": "Multi-world tasks, identity switching, staged settlement, long-arc truth progression",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "period-life",
+    "zh": "年代流",
+    "en": "Period-Life",
+    "zhRules": "时代生活、家庭压力、手艺奋斗、命运改写",
+    "enRules": "Era-grounded living, family pressure, craft-based striving, destiny rewrite",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "showbiz",
+    "zh": "娱乐圈女主流",
+    "en": "Showbiz",
+    "zhRules": "试镜成长、资源博弈、舆论反转、事业起势",
+    "enRules": "Audition growth, resource games, public reversal, career ascent",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "female-mystery",
+    "zh": "女性悬疑",
+    "en": "Female-Mystery",
+    "zhRules": "案件推进、关系网反转、创伤命名、自我夺回",
+    "enRules": "Case progression, relationship reversals, trauma naming, reclaiming agency",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "healing",
+    "zh": "治愈陪伴流",
+    "en": "Healing",
+    "zhRules": "日常陪伴、情绪修复、边界成长、双向支撑",
+    "enRules": "Everyday companionship, emotional repair, boundary growth, mutual support",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "女频"
+  },
+  {
+    "id": "locked-room",
+    "zh": "本格密室",
+    "en": "Locked-Room",
+    "zhRules": "物证排查、诡计拆解、公平推理、逻辑闭环",
+    "enRules": "Physical clues, trick deconstruction, fair-play deduction, logical closure",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "悬疑惊悚"
+  },
+  {
+    "id": "cthulhu",
+    "zh": "克苏鲁",
+    "en": "Cthulhu",
+    "zhRules": "不可知恐惧、理智代价、污染扩散、宇宙尺度压迫",
+    "enRules": "Cosmic dread, sanity cost, contamination spread, unknowable scale",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "悬疑惊悚"
+  },
+  {
+    "id": "survival-horror",
+    "zh": "生存惊悚",
+    "en": "Survival-Horror",
+    "zhRules": "资源消耗、群体分裂、环境压迫、极限逃生",
+    "enRules": "Resource drain, group fracture, environmental pressure, extreme escape",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "悬疑惊悚"
+  },
+  {
+    "id": "campus-horror",
+    "zh": "校园怪谈",
+    "en": "Campus-Horror",
+    "zhRules": "校规异化、熟人社会压力、校园空间恐惧、旧事回收",
+    "enRules": "Mutated school rules, closed social pressure, campus-space dread, buried-incident recovery",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "悬疑惊悚"
+  },
+  {
+    "id": "livestream-horror",
+    "zh": "直播惊悚",
+    "en": "Livestream-Horror",
+    "zhRules": "镜头信息差、弹幕误导、流量压力、实时失控",
+    "enRules": "Camera information gaps, chat misdirection, traffic pressure, real-time collapse",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "悬疑惊悚"
+  },
+  {
+    "id": "time-loop",
+    "zh": "时间循环",
+    "en": "Time-Loop",
+    "zhRules": "多轮试错、变量锁定、心理磨损、循环破局",
+    "enRules": "Iterative retries, variable locking, mental erosion, loop-breaking payoff",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "科幻未来"
+  },
+  {
+    "id": "ai-awakening",
+    "zh": "AI觉醒",
+    "en": "AI-Awakening",
+    "zhRules": "权限突破、人格成立、人机边界、控制权争夺",
+    "enRules": "Permission breakthroughs, personhood formation, human-machine boundaries, control struggles",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "科幻未来"
+  },
+  {
+    "id": "first-contact",
+    "zh": "第一接触",
+    "en": "First-Contact",
+    "zhRules": "文明误判、信号解析、协议建立、视野扩张",
+    "enRules": "Civilizational misread, signal decoding, protocol building, widened perspective",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "科幻未来"
+  },
+  {
+    "id": "space-colony",
+    "zh": "太空殖民",
+    "en": "Space-Colony",
+    "zhRules": "补给脆弱、据点建设、生态稳定、社会秩序重建",
+    "enRules": "Fragile supply lines, outpost building, ecological stability, social order rebuilding",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "科幻未来"
+  },
+  {
+    "id": "hard-sf",
+    "zh": "硬科幻生存",
+    "en": "Hard-SF",
+    "zhRules": "参数约束、工程修复、极限求生、科学自救",
+    "enRules": "Parameter constraints, engineering repair, extreme survival, scientific self-rescue",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "科幻未来"
+  },
+  {
+    "id": "wasteland",
+    "zh": "废土拾荒",
+    "en": "Wasteland",
+    "zhRules": "遗迹开箱、黑市交易、据点立足、稀缺资源博弈",
+    "enRules": "Ruin scavenging, black-market exchange, outpost footholds, scarcity conflict",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "科幻未来"
+  },
+  {
+    "id": "espionage",
+    "zh": "雇佣兵谍战流",
+    "en": "Espionage",
+    "zhRules": "潜入接头、反侦脱身、情报兑现、局中局反制",
+    "enRules": "Infiltration links, counter-surveillance escape, intel payoff, nested-operation reversals",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "男频"
+  },
+  {
+    "id": "bureaucracy",
+    "zh": "官场流",
+    "en": "Bureaucracy",
+    "zhRules": "岗位博弈、程序推进、项目落地、责任回收",
+    "enRules": "Position maneuvering, procedural push, project delivery, accountability recovery",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "历史与现实"
+  },
+  {
+    "id": "business-war",
+    "zh": "商战流",
+    "en": "Business-War",
+    "zhRules": "竞标并购、渠道争夺、现金流压力、市场重排",
+    "enRules": "Bids and M&A, channel fights, cash-flow pressure, market reshuffling",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "历史与现实"
+  },
+  {
+    "id": "legal",
+    "zh": "律政流",
+    "en": "Legal",
+    "zhRules": "证据攻防、程序卡点、庭审逆转、判决余波",
+    "enRules": "Evidence offense-defense, procedural choke points, courtroom reversals, post-judgment fallout",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "历史与现实"
+  },
+  {
+    "id": "archaeology",
+    "zh": "考古探秘",
+    "en": "Archaeology",
+    "zhRules": "遗址发掘、铭文释读、机关拆解、历史重建",
+    "enRules": "Site excavation, inscription decoding, mechanism teardown, historical reconstruction",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "历史与现实"
+  },
+  {
+    "id": "travel-adventure",
+    "zh": "旅行冒险",
+    "en": "Travel-Adventure",
+    "zhRules": "路线变化、异域遭遇、补给压力、旅程成长",
+    "enRules": "Route changes, foreign encounters, supply pressure, growth through the journey",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "历史与现实"
+  },
+  {
+    "id": "sports",
+    "zh": "体育竞技",
+    "en": "Sports",
+    "zhRules": "训练闭环、技战术兑现、赛事翻盘、心理淬炼",
+    "enRules": "Training loops, tactical payoff, match reversals, mental hardening",
+    "listBucket": "new-extension",
+    "comparisonSection": "candidate",
+    "comparisonGroup": "历史与现实"
+  },
+  {
+    "id": "other",
+    "zh": "通用",
+    "en": "General",
+    "zhRules": "最小化兜底",
+    "enRules": "Minimal fallback",
+    "listBucket": "core",
+    "comparisonSection": "builtin",
+    "comparisonGroup": "已有类型"
+  }
+]

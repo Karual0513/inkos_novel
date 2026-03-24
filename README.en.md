@@ -146,20 +146,71 @@ Pipeline events POST JSON to configured URLs (HMAC-SHA256 signed), with event fi
 
 ### Genre Customization
 
-10 built-in genres, each with a complete set of writing rules: chapter types, prohibition lists, fatigue words, language rules, and audit dimensions.
+61 built-in genres, each with a complete set of writing rules: chapter types, prohibition lists, fatigue words, language rules, and audit dimensions.
 
 | Genre                 | Built-in Rules                                                                                       |
 | --------------------- | ---------------------------------------------------------------------------------------------------- |
-| Xuanhuan (Fantasy)    | Numerical system, power scaling, same-type absorption decay formula, face-slap/upgrade/payoff pacing |
-| Xianxia (Cultivation) | Cultivation/enlightenment pacing, artifact system, heavenly dao rules                                |
-| Urban                 | Era research, business/social-driven plot, era-matched legal terminology, no numerical system        |
-| Horror                | Atmosphere progression, fear levels, restrained narration, no power scaling audit                    |
-| Rebirth               | Time-advantage payoff, butterfly-effect cost, destiny rewrite under uncertainty                      |
-| System                | Task/reward/penalty loop, system boundaries, ledger consistency                                      |
-| Onlinegame            | Trackable stats and drops, raid mechanics, team and meta competition                                 |
-| Apocalypse            | Resource decay, shelter maintenance, threat escalation, survival-rule discovery                      |
-| Interstellar          | Civilizational scale, route and supply costs, tech boundaries, strategic conflict                    |
-| General               | Minimal fallback                                                                                     |
+| Xuanhuan (Fantasy) | Numerical system, power scaling, same-type absorption decay formula, face-slap/upgrade/payoff pacing |
+| Xianxia (Cultivation) | Cultivation/enlightenment pacing, artifact system, heavenly dao rules |
+| Urban | Era research, business/social-driven plot, era-matched legal terminology, no numerical system |
+| Horror | Atmosphere progression, fear levels, restrained narration, no power scaling audit |
+| Rebirth | Time-advantage payoff, butterfly-effect cost, destiny rewrite under uncertainty |
+| System | Task/reward/penalty loop, system boundaries, ledger consistency |
+| Onlinegame | Trackable stats and drops, raid mechanics, team and meta competition |
+| Apocalypse | Resource decay, shelter maintenance, threat escalation, survival-rule discovery |
+| Interstellar | Civilizational scale, route and supply costs, tech boundaries, strategic conflict |
+| Infinite | Instance rules, team survival, staged settlement, cross-instance consequences |
+| Strange-Rules | True/false rules, violation penalties, distorted order, high-pressure survival |
+| Lord | Territory building, population and resource loops, military growth, expansion governance |
+| Management | Revenue-cost structure, customer flow, expansion pacing, supply-chain competition |
+| Family | Bloodline structure, inheritance pressure, family business operation, multi-character arcs |
+| Court-Politics | Rank and procedure, faction alignment, policy conflict, power recovery |
+| Entertainment | Creative output, public buzz, resource upgrade, industry feedback |
+| Simulator | Simulation runs, reality deviation, settlement rewards, branch correction |
+| Checkin | Location-triggered rewards, streak mechanics, boundary exploitation, staged growth |
+| Cyberpunk | Body mods, corporate pressure, black-market trade, identity drift |
+| Harem-Household | Ritual order, rank competition, inner-house intrigue, suppressed retaliation |
+| Detective | Evidence chains, procedural investigation, logical closure, culprit reveal |
+| Tycoon | Wealth payout loops, status reversal, resource reallocation, access to elite circles |
+| Multiverse | World-hopping, rule adaptation, cross-world rewards, long-arc mainline recovery |
+| Mastermind | Piece placement, misdirection, proxy execution, net-closing payoff |
+| Identities | Multi-identity rotation, disguise pressure, reveal risk, relationship reversal |
+| Medical | Diagnostic chains, treatment risk, professional growth, ethics and hospital politics |
+| Esports | Training review, meta understanding, tournament pacing, team coordination |
+| Folklore | Regional taboos, ritual rules, village dread, cause-and-effect closure |
+| Mecha | Unit roles, maintenance upgrades, tactical coordination, battlefield attrition |
+| Son-in-Law | Status suppression, long-term restraint, leverage payoff, social reversal |
+| Treasure | Authenticity judgment, undervalued finds, insider bargaining, reputation building |
+| Conquest | Territorial expansion, troop and grain logistics, legitimacy conflict, governance follow-through |
+| Construction | Land reclamation, facility rollout, organizational support, living-standard improvement |
+| Arranged-Love | Marriage friction, misread correction, united front moments, emotional warming |
+| Chasing-Love | Old wounds repaid, regret and compensation, relationship rebuild, heroine clarity |
+| Parenting | Everyday care, parenting pressure, family healing, mutual redemption |
+| Workplace | Project delivery, organizational politics, performance feedback, promotion and transition |
+| Quick-Transmigration | Multi-world tasks, identity switching, staged settlement, long-arc truth progression |
+| Period-Life | Era-grounded living, family pressure, craft-based striving, destiny rewrite |
+| Showbiz | Audition growth, resource games, public reversal, career ascent |
+| Female-Mystery | Case progression, relationship reversals, trauma naming, reclaiming agency |
+| Healing | Everyday companionship, emotional repair, boundary growth, mutual support |
+| Locked-Room | Physical clues, trick deconstruction, fair-play deduction, logical closure |
+| Cthulhu | Cosmic dread, sanity cost, contamination spread, unknowable scale |
+| Survival-Horror | Resource drain, group fracture, environmental pressure, extreme escape |
+| Campus-Horror | Mutated school rules, closed social pressure, campus-space dread, buried-incident recovery |
+| Livestream-Horror | Camera information gaps, chat misdirection, traffic pressure, real-time collapse |
+| Time-Loop | Iterative retries, variable locking, mental erosion, loop-breaking payoff |
+| AI-Awakening | Permission breakthroughs, personhood formation, human-machine boundaries, control struggles |
+| First-Contact | Civilizational misread, signal decoding, protocol building, widened perspective |
+| Space-Colony | Fragile supply lines, outpost building, ecological stability, social order rebuilding |
+| Hard-SF | Parameter constraints, engineering repair, extreme survival, scientific self-rescue |
+| Wasteland | Ruin scavenging, black-market exchange, outpost footholds, scarcity conflict |
+| Espionage | Infiltration links, counter-surveillance escape, intel payoff, nested-operation reversals |
+| Bureaucracy | Position maneuvering, procedural push, project delivery, accountability recovery |
+| Business-War | Bids and M&A, channel fights, cash-flow pressure, market reshuffling |
+| Legal | Evidence offense-defense, procedural choke points, courtroom reversals, post-judgment fallout |
+| Archaeology | Site excavation, inscription decoding, mechanism teardown, historical reconstruction |
+| Travel-Adventure | Route changes, foreign encounters, supply pressure, growth through the journey |
+| Sports | Training loops, tactical payoff, match reversals, mental hardening |
+| General | Minimal fallback |
 
 Specify a genre when creating a book and matching rules activate automatically:
 
@@ -167,7 +218,11 @@ Specify a genre when creating a book and matching rules activate automatically:
 inkos book create --title "Devouring Emperor" --genre xuanhuan
 ```
 
-Available genre IDs: `rebirth`, `system`, `onlinegame`, `apocalypse`, `interstellar`, `xuanhuan`, `xianxia`, `urban`, `horror`, `other`
+Available genre IDs (61 total):
+
+- Core: `xuanhuan`, `xianxia`, `urban`, `horror`, `other`
+- Existing extensions: `rebirth`, `system`, `onlinegame`, `apocalypse`, `interstellar`
+- New extensions: `infinite`, `strange-rules`, `lord`, `management`, `family`, `court-politics`, `entertainment`, `simulator`, `checkin`, `cyberpunk`, `harem-household`, `detective`, `tycoon`, `multiverse`, `mastermind`, `identities`, `medical`, `esports`, `folklore`, `mecha`, `son-in-law`, `treasure`, `conquest`, `construction`, `arranged-love`, `chasing-love`, `parenting`, `workplace`, `quick-transmigration`, `period-life`, `showbiz`, `female-mystery`, `healing`, `locked-room`, `cthulhu`, `survival-horror`, `campus-horror`, `livestream-horror`, `time-loop`, `ai-awakening`, `first-contact`, `space-colony`, `hard-sf`, `wasteland`, `espionage`, `bureaucracy`, `business-war`, `legal`, `archaeology`, `travel-adventure`, `sports`
 
 View, copy, or create genre rules:
 
@@ -180,11 +235,11 @@ inkos genre create wuxia --name Wuxia # Create a new genre from scratch
 
 After copying to your project, add/remove prohibitions, adjust fatigue words, modify pacing rules, customize language rules — changes take effect on the next chapter.
 
-Each genre has dedicated language rules (with bad → good examples), enforced by both writer and auditor:
+Each genre ships with dedicated language rules (with ✗→✓ examples) enforced by both writers and auditors:
 
-- **Xuanhuan**: ✗ "Fire essence increased from 12 to 24 wisps" → ✓ "His arm felt stronger than before, knuckles tightening into a fist"
-- **Urban**: ✗ "Quickly analyzed the current debt situation" → ✓ "Flipped through the stack of wrinkled IOUs three times"
-- **Horror**: ✗ "Felt a wave of fear" → ✓ "The hairs on the back of his neck stood up one by one"
+- **Xuanhuan**: ✗ "Fire essence increased from 12 strands to 24 strands" → ✓ "His arm felt stronger than before, the finger bones tightening as he clenched his fist"
+- **Urban**: ✗ "He quickly analyzed the current debt situation" → ✓ "He flipped through that stack of wrinkled IOUs three times"
+- **Horror**: ✗ "He felt a wave of fear" → ✓ "The hairs on the back of his neck stood up one by one"
 
 ### Per-Book Rules
 

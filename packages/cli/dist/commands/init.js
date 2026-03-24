@@ -82,7 +82,7 @@ export const initCommand = new Command("init")
             log("Next steps:");
             if (name)
                 log(`  cd ${name}`);
-            log("  inkos book create --title '我的小说' --genre rebirth --platform tomato");
+            log("  inkos book create --title '我的小说' --genre xuanhuan --platform tomato");
         }
         else {
             log("Next steps:");
@@ -92,7 +92,7 @@ export const initCommand = new Command("init")
             log("  inkos config set-global --provider openai --base-url https://api.openai.com/v1 --api-key sk-xxx --model gpt-4o");
             log("  # Option 2: Edit .env for this project only");
             log("");
-            log("  inkos book create --title '我的小说' --genre rebirth --platform tomato");
+            log("  inkos book create --title '我的小说' --genre xuanhuan --platform tomato");
         }
         log("  inkos write next <book-id>");
     }

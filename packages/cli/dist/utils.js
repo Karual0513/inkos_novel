@@ -98,7 +98,7 @@ export async function resolveBookId(bookIdArg, root) {
         return bookIdArg;
     }
     if (books.length === 0) {
-        throw new Error("No books found. Create one first:\n  inkos book create --title '...' --genre rebirth");
+        throw new Error("No books found. Create one first:\n  inkos book create --title '...' --genre xuanhuan");
     }
     if (books.length === 1) {
         return books[0];

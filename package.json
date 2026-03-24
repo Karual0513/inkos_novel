@@ -11,6 +11,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm -r dev",
+    "sync:genres": "node ./scripts/sync-genres.mjs",
     "studio": "corepack pnpm --filter @actalk/inkos-core build && corepack pnpm --filter @actalk/inkos build && corepack pnpm --filter @actalk/inkos-web build && corepack pnpm --filter @actalk/inkos-web start",
     "studio:build": "corepack pnpm --filter @actalk/inkos-core build && corepack pnpm --filter @actalk/inkos build && corepack pnpm --filter @actalk/inkos-web build",
     "test": "pnpm -r test",

@@ -1,7 +1,6 @@
 ---
 name: inkos
-description: Autonomous novel writing CLI agent - use for creative fiction writing, novel generation, style imitation, chapter continuation, and AIGC detection. Supports Chinese web novel genres (rebirth, system, onlinegame, apocalypse, interstellar, xuanhuan, xianxia, urban, horror, other) with multi-agent pipeline and advanced auditing.
-version: 1.0.0
+description: Autonomous novel writing CLI agent - use for creative fiction writing, novel generation, style imitation, chapter continuation, and AIGC detection. Supports 61 built-in Chinese web novel genres with multi-agent pipeline and advanced auditing.
 metadata: { "openclaw": { "emoji": "📖", "requires": { "bins": ["inkos", "node"], "env": [] }, "primaryEnv": "", "homepage": "https://github.com/Narcooo/inkos", "install": [{ "id": "npm", "kind": "node", "package": "@actalk/inkos", "label": "Install InkOS (npm)" }] } }
 ---
 
@@ -46,7 +45,7 @@ inkos status
    ```bash
    inkos book create --title "My Novel Title" --genre xuanhuan --chapter-words 3000
    ```
-   - Genres: `rebirth` (second-chance), `system`, `onlinegame`, `apocalypse`, `interstellar`, `xuanhuan` (cultivation), `xianxia` (immortal), `urban` (city), `horror`, `other`
+   - Genres (61 built-ins): `xuanhuan`, `xianxia`, `urban`, `horror`, `rebirth`, `system`, `onlinegame`, `apocalypse`, `interstellar`, `infinite`, `strange-rules`, `lord`, `management`, `family`, `court-politics`, `entertainment`, `simulator`, `checkin`, `cyberpunk`, `harem-household`, `detective`, `tycoon`, `multiverse`, `mastermind`, `identities`, `medical`, `esports`, `folklore`, `mecha`, `son-in-law`, `treasure`, `conquest`, `construction`, `arranged-love`, `chasing-love`, `parenting`, `workplace`, `quick-transmigration`, `period-life`, `showbiz`, `female-mystery`, `healing`, `locked-room`, `cthulhu`, `survival-horror`, `campus-horror`, `livestream-horror`, `time-loop`, `ai-awakening`, `first-contact`, `space-colony`, `hard-sf`, `wasteland`, `espionage`, `bureaucracy`, `business-war`, `legal`, `archaeology`, `travel-adventure`, `sports`, `other`
    - Returns a `book-id` for all subsequent operations
 
 2. **Generate initial chapters** (e.g., 5 chapters):
