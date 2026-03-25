@@ -51,7 +51,7 @@ interface ChapterRequestPayload extends ChapterSavePayload {
 
 const runtimeDir = dirname(fileURLToPath(import.meta.url));
 const host = "127.0.0.1";
-const port = parseInt(process.env.INKOS_STUDIO_PORT ?? "3210", 10);
+const defaultPort = parseInt(process.env.INKOS_STUDIO_PORT ?? "3210", 10);
 const filesystemRootsToken = "@roots";
 
 export interface StudioServerOptions {
@@ -74,7 +74,7 @@ export function createStudioServer(options: StudioServerOptions = {}): Server {
 
   return createServer(async (request, response) => {
     try {
-      const url = new URL(request.url ?? "/", `http://${request.headers.host ?? `${host}:${port}`}`);
+      const url = new URL(request.url ?? "/", `http://${request.headers.host ?? `${host}:${defaultPort}`}`);
 
       if (request.method === "GET" && url.pathname === "/api/meta") {
         const contexts = await listProjectContexts(workspaceRoot);
@@ -147,20 +147,56 @@ export function createStudioServer(options: StudioServerOptions = {}): Server {
 }
 
 export async function startStudioServer(server = createStudioServer()): Promise<Server> {
-  await new Promise<void>((resolve) => {
-    server.listen(port, host, () => resolve());
-  });
+  const activePort = await listenOnAvailablePort(server, host, defaultPort);
 
   const contexts = await listProjectContexts(defaultWorkspaceRoot);
   const defaultContext = contexts.find((context) => context.isDefault);
 
-  process.stdout.write(`InkOS Studio running at http://${host}:${port}\n`);
+  process.stdout.write(`InkOS Studio running at http://${host}:${activePort}\n`);
   process.stdout.write(`Workspace root: ${defaultWorkspaceRoot}\n`);
   if (defaultContext) {
     process.stdout.write(`Default project context: ${defaultContext.label}\n`);
   }
 
   return server;
+}
+
+async function listenOnAvailablePort(server: Server, listenHost: string, preferredPort: number): Promise<number> {
+  const maxAttempts = 20;
+
+  for (let offset = 0; offset < maxAttempts; offset += 1) {
+    const candidatePort = preferredPort + offset;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const handleListening = () => {
+          server.off("error", handleError);
+          resolve();
+        };
+
+        const handleError = (error: NodeJS.ErrnoException) => {
+          server.off("listening", handleListening);
+          reject(error);
+        };
+
+        server.once("error", handleError);
+        server.once("listening", handleListening);
+        server.listen(candidatePort, listenHost);
+      });
+
+      if (candidatePort !== preferredPort) {
+        process.stdout.write(`Port ${preferredPort} is busy, switched to ${candidatePort}.\n`);
+      }
+
+      return candidatePort;
+    } catch (error) {
+      const listenError = error as NodeJS.ErrnoException;
+      if (listenError.code !== "EADDRINUSE" || offset === maxAttempts - 1) {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(`No available port found from ${preferredPort} to ${preferredPort + maxAttempts - 1}.`);
 }
 
 function buildRunnableCommandIndex(commands: ReadonlyArray<CommandMetadata>): ReadonlyMap<string, CommandMetadata> {

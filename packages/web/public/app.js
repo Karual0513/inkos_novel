@@ -36,20 +36,50 @@ const FIELD_LABELS = {
 };
 
 const PAGE_DEFINITIONS = {
+  overview: {
+    hash: "#page-overview",
+    label: "总览驾驶舱",
+    description: "总览项目状态、近期命令和创作链路。",
+  },
+  editor: {
+    hash: "#page-editor",
+    label: "创作编辑器",
+    description: "编辑正文并同步查看 Markdown 预览、章节信息和快捷动作。",
+  },
+  works: {
+    hash: "#page-works",
+    label: "作品管理",
+    description: "管理小说规则、章节状态、审阅队列和修订动作。",
+  },
+  imports: {
+    hash: "#page-imports",
+    label: "文本导入",
+    description: "处理文风仿写、番外写作和外部素材接入。",
+  },
+  genres: {
+    hash: "#page-genres",
+    label: "题材管理",
+    description: "查看题材库、项目题材分布和题材规则命令。",
+  },
   commands: {
     hash: "#page-commands",
     label: "命令中心",
-    description: "筛选命令、填写参数并执行 CLI",
+    description: "直接执行 CLI 命令并查看控制台输出。",
   },
-  workbench: {
-    hash: "#page-workbench",
-    label: "编辑工作台",
-    description: "查看书籍、章节、待审队列与正文编辑",
+  agent: {
+    hash: "#page-agent",
+    label: "Agent",
+    description: "组织智能体问答、创作指令和辅助流程。",
   },
-  results: {
-    hash: "#page-results",
-    label: "执行结果",
-    description: "查看输出、结构化结果与历史记录",
+  aigc: {
+    hash: "#page-aigc",
+    label: "AIGC 检测",
+    description: "聚合检测风险、章节信号和处理建议。",
+  },
+  settings: {
+    hash: "#page-settings",
+    label: "设置配置",
+    description: "处理全局配置、项目配置、项目创建与环境诊断。",
   },
 };
 
@@ -71,7 +101,7 @@ const state = {
   execution: null,
   history: loadHistory(),
   commandPrefills: {},
-  currentPage: "commands",
+  currentPage: "overview",
   resultFilterStatus: "all",
   resultFilterQuery: "",
   projectCreatePath: "",
@@ -82,11 +112,21 @@ const state = {
 
 const refs = {
   pageNav: document.querySelector("#page-nav"),
+  pageTitle: document.querySelector("#page-title"),
+  pageDescription: document.querySelector("#page-description"),
+  overviewPanel: document.querySelector("#overview-panel"),
+  worksOverview: document.querySelector("#works-overview"),
+  editorContextPanel: document.querySelector("#editor-context-panel"),
+  importsPanel: document.querySelector("#imports-panel"),
+  genresPanel: document.querySelector("#genres-panel"),
+  agentPanel: document.querySelector("#agent-panel"),
+  aigcPanel: document.querySelector("#aigc-panel"),
+  settingsPanel: document.querySelector("#settings-panel"),
   commandOverview: document.querySelector("#command-overview"),
-  workbenchOverview: document.querySelector("#workbench-overview"),
   contextSelect: document.querySelector("#context-select"),
   refreshDashboard: document.querySelector("#refresh-dashboard"),
   cliStatus: document.querySelector("#cli-status"),
+  cliStatusDot: document.querySelector("#cli-status-dot"),
   toolbarSummary: document.querySelector("#toolbar-summary"),
   dashboardCards: document.querySelector("#dashboard-cards"),
   commandSearch: document.querySelector("#command-search"),
@@ -113,10 +153,17 @@ async function bootstrap() {
   renderCommandGroups();
   await refreshDashboard();
   renderPageNav();
+  renderOverviewPanel();
+  renderEditorContextPanel();
   renderCommandPanel();
   renderOutputPanel();
   renderCommandOverview();
-  renderWorkbenchOverview();
+  renderWorksOverview();
+  renderImportsPanel();
+  renderGenresPanel();
+  renderAgentPanel();
+  renderAigcPanel();
+  renderSettingsPanel();
   updateProjectPathPreview();
 }
 
@@ -131,9 +178,10 @@ async function loadMeta(preferredContext = state.selectedContext) {
     ?? state.contexts.find((context) => context.isDefault)?.relativePath
     ?? ".";
   state.selectedCommandPath = state.commands.find((command) => command.path === "status")?.path ?? state.commands[0]?.path ?? "";
-  refs.cliStatus.textContent = state.meta.cliBuilt
-    ? "CLI 已构建，网页会直接执行真实的 InkOS 命令。"
-    : "CLI 尚未构建，请先运行 pnpm --filter @actalk/inkos build。";
+  refs.cliStatus.textContent = state.meta.cliBuilt ? "CLI 就绪" : "CLI 未构建";
+  if (refs.cliStatusDot) {
+    refs.cliStatusDot.className = state.meta.cliBuilt ? "cli-dot" : "cli-dot offline";
+  }
   renderToolbarSummary();
 }
 
@@ -142,7 +190,7 @@ function bindEvents() {
     syncPageFromHash();
   });
 
-  refs.commandOverview.addEventListener("submit", async (event) => {
+  refs.settingsPanel.addEventListener("submit", async (event) => {
     const form = event.target.closest("#project-create-form");
     if (!form) {
       return;
@@ -151,7 +199,7 @@ function bindEvents() {
     await createProjectFromOverview();
   });
 
-  refs.commandOverview.addEventListener("click", (event) => {
+  refs.settingsPanel.addEventListener("click", (event) => {
     const action = event.target.closest("button[data-action]");
     if (!action) {
       return;
@@ -160,12 +208,12 @@ function bindEvents() {
     if (action.dataset.action === "use-selected-context-path") {
       const value = state.selectedContext && state.selectedContext !== "." ? state.selectedContext : "";
       state.projectCreatePath = value;
-      const input = refs.commandOverview.querySelector("#project-create-path");
+      const input = refs.settingsPanel.querySelector("#project-create-path");
       if (input) {
         input.value = value;
       }
       updateProjectPathPreview();
-      renderCommandOverview();
+      renderSettingsPanel();
     }
 
     if (action.dataset.action === "toggle-path-node") {
@@ -175,14 +223,14 @@ function bindEvents() {
     if (action.dataset.action === "select-path-node") {
       state.projectCreatePath = action.dataset.pathNode || "";
       updateProjectPathPreview();
-      renderCommandOverview();
+      renderSettingsPanel();
     }
 
     if (action.dataset.action === "reload-path-tree") {
       state.pathTree = {};
       state.pathTreeExpanded = [".", "@roots"];
       void Promise.all([ensurePathTreeLoaded("."), ensurePathTreeLoaded("@roots")]).then(() => {
-        renderCommandOverview();
+        renderSettingsPanel();
       });
     }
 
@@ -194,12 +242,12 @@ function bindEvents() {
       state.projectCreatePath = parentPath;
       void ensurePathTreeLoaded(parentPath).then(() => {
         expandPathTrail(parentPath);
-        renderCommandOverview();
+        renderSettingsPanel();
       });
     }
   });
 
-  refs.commandOverview.addEventListener("input", (event) => {
+  refs.settingsPanel.addEventListener("input", (event) => {
     if (event.target.id !== "project-create-path") {
       return;
     }
@@ -242,6 +290,141 @@ function bindEvents() {
     state.search = event.target.value.trim().toLowerCase();
     renderCommandGroups();
     renderCommandOverview();
+  });
+
+  for (const panel of [refs.overviewPanel, refs.editorContextPanel, refs.commandOverview, refs.importsPanel, refs.genresPanel, refs.agentPanel, refs.aigcPanel, refs.settingsPanel]) {
+    panel?.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-command-path]");
+      if (!button) {
+        return;
+      }
+      openCommand(button.dataset.commandPath, buildPrefillFromDataset(button.dataset));
+    });
+  }
+
+  refs.agentPanel.addEventListener("click", (event) => {
+    const action = event.target.closest("button[data-action]");
+    if (!action) {
+      return;
+    }
+
+    if (action.dataset.action === "open-agent-command") {
+      const promptInput = refs.agentPanel.querySelector("#agent-prompt-input");
+      const contextInput = refs.agentPanel.querySelector("#agent-context-input");
+      const turnsInput = refs.agentPanel.querySelector("#agent-max-turns-input");
+      const prompt = String(promptInput?.value ?? "").trim();
+      const context = String(contextInput?.value ?? "").trim();
+      const maxTurns = String(turnsInput?.value ?? "").trim();
+      openCommand("agent", prompt ? {
+        arguments: { instruction: prompt },
+        options: {
+          context,
+          maxTurns,
+        },
+      } : {});
+    }
+  });
+
+  refs.importsPanel.addEventListener("click", (event) => {
+    const action = event.target.closest("button[data-action]");
+    if (!action) {
+      return;
+    }
+
+    const styleFile = String(refs.importsPanel.querySelector("#style-source-file")?.value ?? "").trim();
+    const styleName = String(refs.importsPanel.querySelector("#style-source-name")?.value ?? "").trim();
+    const targetBookId = String(refs.importsPanel.querySelector("#import-target-book")?.value ?? state.selectedBookId ?? "").trim();
+    const canonFrom = String(refs.importsPanel.querySelector("#canon-parent-book")?.value ?? "").trim();
+    const chaptersFrom = String(refs.importsPanel.querySelector("#chapter-import-path")?.value ?? "").trim();
+    const draftBookId = String(refs.importsPanel.querySelector("#draft-book-id")?.value ?? state.selectedBookId ?? "").trim();
+    const draftWords = String(refs.importsPanel.querySelector("#draft-words")?.value ?? "").trim();
+    const draftContext = String(refs.importsPanel.querySelector("#draft-context")?.value ?? "").trim();
+
+    if (action.dataset.action === "prepare-style-analyze") {
+      openCommand("style analyze", {
+        arguments: { file: styleFile },
+        options: { name: styleName },
+      });
+    }
+
+    if (action.dataset.action === "prepare-style-import") {
+      openCommand("style import", {
+        arguments: { file: styleFile, "book-id": targetBookId },
+        options: { name: styleName },
+      });
+    }
+
+    if (action.dataset.action === "prepare-import-canon") {
+      openCommand("import canon", {
+        arguments: { "target-book-id": targetBookId },
+        options: { from: canonFrom },
+      });
+    }
+
+    if (action.dataset.action === "prepare-import-chapters") {
+      openCommand("import chapters", {
+        arguments: { "book-id": targetBookId },
+        options: { from: chaptersFrom },
+      });
+    }
+
+    if (action.dataset.action === "prepare-draft") {
+      openCommand("draft", {
+        arguments: { "book-id": draftBookId },
+        options: { words: draftWords, context: draftContext },
+      });
+    }
+  });
+
+  refs.aigcPanel.addEventListener("click", (event) => {
+    const action = event.target.closest("button[data-action]");
+    if (!action) {
+      return;
+    }
+
+    const bookId = String(refs.aigcPanel.querySelector("#aigc-book-id")?.value ?? state.selectedBookId ?? "").trim();
+    const chapter = String(refs.aigcPanel.querySelector("#aigc-chapter")?.value ?? state.selectedChapterNumber ?? "").trim();
+
+    if (action.dataset.action === "prepare-detect") {
+      openCommand("detect", {
+        arguments: { "book-id": bookId, chapter },
+      });
+    }
+
+    if (action.dataset.action === "prepare-detect-stats") {
+      openCommand("detect", {
+        arguments: { "book-id": bookId },
+        options: { stats: true },
+      });
+    }
+
+    if (action.dataset.action === "prepare-detect-all") {
+      openCommand("detect", {
+        arguments: { "book-id": bookId },
+        options: { all: true },
+      });
+    }
+  });
+
+  refs.settingsPanel.addEventListener("click", (event) => {
+    const action = event.target.closest("button[data-action]");
+    if (!action) {
+      return;
+    }
+
+    if (action.dataset.action === "prepare-config-set") {
+      const key = String(refs.settingsPanel.querySelector("#config-key-input")?.value ?? "").trim();
+      const value = String(refs.settingsPanel.querySelector("#config-value-input")?.value ?? "").trim();
+      openCommand("config set", { arguments: { key, value } });
+    }
+
+    if (action.dataset.action === "prepare-show-global") {
+      openCommand("config show-global");
+    }
+
+    if (action.dataset.action === "prepare-show-models") {
+      openCommand("config show-models");
+    }
   });
 
   refs.commandGroups.addEventListener("click", (event) => {
@@ -350,6 +533,8 @@ function bindEvents() {
     state.editorContent = event.target.value;
     state.editorDirty = state.activeChapter ? state.editorContent !== state.activeChapter.content : false;
     renderEditorMeta();
+    renderEditorContextPanel();
+    updateEditorPreview();
   });
 
   refs.editorPanel.addEventListener("click", async (event) => {
@@ -487,15 +672,14 @@ function renderCommandPanel() {
 
   const prefill = getCommandPrefill(command, state);
   refs.commandPanel.innerHTML = `
-    <div class="panel-head">
+    <div class="card-head">
       <div>
-        <p class="eyebrow">Command Studio</p>
-        <h2>${escapeHtml(command.uiLabel)}</h2>
-        <p>${escapeHtml(command.uiDescription || command.description || "通过中文表单执行命令")}</p>
+        <h3 class="card-title">${escapeHtml(command.uiLabel)}</h3>
+        <p class="card-subtitle">${escapeHtml(command.uiDescription || command.description || "通过中文表单执行命令")}</p>
       </div>
       <div class="badge-row">
         <span class="badge">${escapeHtml(command.uiCategoryLabel)}</span>
-        <span class="badge">${command.supportsJson ? "结构化结果" : "文本结果"}</span>
+        <span class="badge">${command.supportsJson ? "结构化" : "文本"}</span>
         <span class="badge">参数 ${command.arguments.length}</span>
         <span class="badge">选项 ${command.options.length}</span>
       </div>
@@ -613,7 +797,12 @@ async function refreshDashboard() {
   state.dashboard = await response.json();
   renderToolbarSummary();
   renderPageNav();
-  renderWorkbenchOverview();
+  renderWorksOverview();
+  renderOverviewPanel();
+  renderImportsPanel();
+  renderGenresPanel();
+  renderAigcPanel();
+  renderSettingsPanel();
 
   if (!state.dashboard.initialized) {
     state.selectedBookId = "";
@@ -626,6 +815,7 @@ async function refreshDashboard() {
     renderBooksPanel();
     renderChaptersPanel();
     renderReviewsPanel();
+    renderEditorContextPanel();
     renderEditorPanel();
     return;
   }
@@ -634,6 +824,7 @@ async function refreshDashboard() {
   renderDashboardCards();
   renderBooksPanel();
   renderReviewsPanel();
+  renderEditorContextPanel();
 
   if (state.selectedBookId) {
     await loadBookChapters(state.selectedBookId);
@@ -644,6 +835,7 @@ async function refreshDashboard() {
     state.editorContent = "";
     state.editorDirty = false;
     renderChaptersPanel();
+    renderEditorContextPanel();
     renderEditorPanel();
   }
 }
@@ -651,18 +843,19 @@ async function refreshDashboard() {
 function renderDashboardCards() {
   const totals = state.dashboard?.totals ?? { books: 0, chapters: 0, words: 0, pendingReviews: 0 };
   const cards = [
-    { label: "书籍数量", value: totals.books, tone: "teal" },
-    { label: "章节总数", value: totals.chapters, tone: "sand" },
-    { label: "累计字数", value: formatNumber(totals.words), tone: "rust" },
-    { label: "待审章节", value: totals.pendingReviews, tone: "ink" },
+    { label: "书籍总数", value: totals.books, tone: "primary", footer: "当前项目管理的书籍" },
+    { label: "章节总数", value: totals.chapters, tone: "success", footer: "已生成的全部章节" },
+    { label: "累计字数", value: formatNumber(totals.words), tone: "warning", footer: "全部章节的总字数" },
+    { label: "待审章节", value: totals.pendingReviews, tone: "danger", footer: "需要人工审阅的章节" },
   ];
 
   refs.dashboardCards.innerHTML = cards
     .map(
-      (card, index) => `
-        <article class="card stat-card tone-${card.tone}" style="animation-delay:${index * 90}ms">
-          <span>${card.label}</span>
-          <strong>${card.value}</strong>
+      (card) => `
+        <article class="stat-card tone-${card.tone}">
+          <p class="stat-label">${card.label}</p>
+          <div class="stat-value">${card.value}</div>
+          <div class="stat-footer">${card.footer}</div>
         </article>
       `,
     )
@@ -672,11 +865,8 @@ function renderDashboardCards() {
 function renderBooksPanel() {
   if (!state.dashboard?.initialized) {
     refs.booksPanel.innerHTML = `
-      <div class="panel-head compact">
-        <div>
-          <p class="eyebrow">Project</p>
-          <h2>书籍列表</h2>
-        </div>
+      <div class="card-head">
+        <div><h3 class="card-title">书籍列表</h3></div>
       </div>
       <div class="empty-state"><p>当前上下文还不是 InkOS 项目，可以先执行“初始化项目”。</p></div>
     `;
@@ -685,20 +875,19 @@ function renderBooksPanel() {
 
   const books = state.dashboard?.books ?? [];
   refs.booksPanel.innerHTML = `
-    <div class="panel-head compact">
+    <div class="card-head">
       <div>
-        <p class="eyebrow">Books</p>
-        <h2>书籍列表</h2>
-        <p class="muted">选择书籍后会自动同步章节列表、编辑器和相关命令预填。</p>
+        <h3 class="card-title">书籍列表</h3>
+        <p class="card-subtitle">选择书籍后自动同步章节与编辑器</p>
       </div>
       <span class="badge">${books.length} 本</span>
     </div>
-    ${renderPageJumpLinks("workbench")}
+    ${renderPageJumpLinks("works")}
     <div class="list-panel">
       ${books.length > 0 ? books.map(renderBookCard).join("") : `<div class="empty-state tiny"><p>当前项目还没有书籍。</p></div>`}
     </div>
   `;
-  renderWorkbenchOverview();
+  renderWorksOverview();
 }
 
 function renderBookCard(book) {
@@ -735,19 +924,18 @@ function renderBookCard(book) {
 function renderChaptersPanel() {
   const selectedBook = getSelectedBook();
   refs.chaptersPanel.innerHTML = `
-    <div class="panel-head compact">
+    <div class="card-head">
       <div>
-        <p class="eyebrow">Chapters</p>
-        <h2>${selectedBook ? `${escapeHtml(selectedBook.title)} 的章节` : "章节列表"}</h2>
+        <h3 class="card-title">${selectedBook ? `${escapeHtml(selectedBook.title)} 的章节` : "章节列表"}</h3>
       </div>
       <span class="badge">${state.chapters.length} 章</span>
     </div>
-    ${renderPageJumpLinks("workbench")}
+    ${renderPageJumpLinks("works")}
     <div class="list-panel chapter-list">
       ${selectedBook ? (state.chapters.length > 0 ? state.chapters.map(renderChapterCard).join("") : `<div class="empty-state tiny"><p>这本书还没有章节。</p></div>`) : `<div class="empty-state tiny"><p>先选择一本书，再查看章节和正文。</p></div>`}
     </div>
   `;
-  renderWorkbenchOverview();
+  renderWorksOverview();
 }
 
 function renderChapterCard(chapter) {
@@ -774,19 +962,18 @@ function renderChapterCard(chapter) {
 function renderReviewsPanel() {
   const reviews = state.dashboard?.pendingReviews ?? [];
   refs.reviewsPanel.innerHTML = `
-    <div class="panel-head compact">
+    <div class="card-head">
       <div>
-        <p class="eyebrow">Review Queue</p>
-        <h2>待审章节</h2>
+        <h3 class="card-title">待审章节</h3>
       </div>
       <span class="badge">${reviews.length} 项</span>
     </div>
-    ${renderPageJumpLinks("workbench")}
+    ${renderPageJumpLinks("works")}
     <div class="list-panel">
       ${reviews.length > 0 ? reviews.map(renderReviewCard).join("") : `<div class="empty-state tiny"><p>当前没有待审章节。</p></div>`}
     </div>
   `;
-  renderWorkbenchOverview();
+  renderWorksOverview();
 }
 
 function renderReviewCard(review) {
@@ -821,7 +1008,7 @@ function renderEditorPanel() {
         <p>先选择一个已初始化的 InkOS 项目，再进入章节编辑与审阅操作。</p>
       </div>
     `;
-    renderWorkbenchOverview();
+    renderWorksOverview();
     return;
   }
 
@@ -832,21 +1019,20 @@ function renderEditorPanel() {
         <p>从左侧书籍或待审列表中选择章节后，这里会显示正文、问题、审阅动作和快捷命令。</p>
       </div>
     `;
-    renderWorkbenchOverview();
+    renderWorksOverview();
     return;
   }
 
   refs.editorPanel.innerHTML = `
-    <div class="panel-head">
+    <div class="card-head">
       <div>
-        <p class="eyebrow">Editor Workbench</p>
-        <h2>${escapeHtml(selectedBook.title)} · 第 ${chapter.chapter} 章</h2>
-        <p>${escapeHtml(chapter.title)}${chapter.fileName ? ` · ${escapeHtml(chapter.fileName)}` : ""}</p>
+        <h3 class="card-title">${escapeHtml(selectedBook.title)} · 第 ${chapter.chapter} 章</h3>
+        <p class="card-subtitle">${escapeHtml(chapter.title)}${chapter.fileName ? ` · ${escapeHtml(chapter.fileName)}` : ""}</p>
       </div>
       <div class="badge-row editor-status" id="editor-meta-badges"></div>
     </div>
 
-    ${renderPageJumpLinks("workbench")}
+    ${renderPageJumpLinks("editor")}
 
     <div class="editor-toolbar">
       <button class="primary" data-action="save-editor">保存正文</button>
@@ -866,31 +1052,17 @@ function renderEditorPanel() {
         </div>
         <textarea id="chapter-editor" spellcheck="false">${escapeHtml(state.editorContent)}</textarea>
       </div>
-      <aside class="editor-sidebar">
-        <div class="info-card">
-          <h3>章节信息</h3>
-          <ul class="plain-list">
-            <li><span>书籍</span><strong>${escapeHtml(selectedBook.title)}</strong></li>
-            <li><span>章节</span><strong>第 ${chapter.chapter} 章</strong></li>
-            <li><span>状态</span><strong>${escapeHtml(CHAPTER_STATUS_LABELS[chapter.status] ?? chapter.status)}</strong></li>
-            <li><span>字数</span><strong>${formatNumber(chapter.wordCount)}</strong></li>
-            <li><span>更新时间</span><strong>${formatDateTime(chapter.updatedAt)}</strong></li>
-          </ul>
+      <div class="preview-shell">
+        <div class="markdown-preview">
+          <h3>Markdown 预览</h3>
+          <div class="markdown-preview-body">${renderMarkdownPreview(state.editorContent)}</div>
         </div>
-        <div class="info-card">
-          <h3>审阅备注</h3>
-          <p class="muted">${escapeHtml(chapter.reviewNote || "暂无审阅备注")}</p>
-        </div>
-        <div class="info-card">
-          <h3>当前问题</h3>
-          ${chapter.auditIssues.length > 0 ? `<ul class="issue-list">${chapter.auditIssues.map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>` : `<p class="muted">当前没有记录的问题。</p>`}
-        </div>
-      </aside>
+      </div>
     </div>
   `;
 
   renderEditorMeta();
-  renderWorkbenchOverview();
+  renderWorksOverview();
 }
 
 function renderEditorMeta() {
@@ -912,15 +1084,14 @@ function renderOutputPanel() {
   const recent = getFilteredHistory().slice(0, 8);
 
   refs.outputPanel.innerHTML = `
-    <div class="panel-head compact">
+    <div class="card-head">
       <div>
-        <p class="eyebrow">Execution</p>
-        <h2>执行结果</h2>
+        <h3 class="card-title">执行结果</h3>
       </div>
       ${execution ? `<span class="badge ${execution.ok ? "success" : "danger"}">${execution.ok ? "成功" : "失败"}</span>` : ""}
     </div>
 
-    ${renderPageJumpLinks("results")}
+    ${renderPageJumpLinks("commands")}
 
     <div class="results-toolbar">
       <label class="field-inline">
@@ -943,8 +1114,7 @@ function renderOutputPanel() {
 
     <div class="panel-head compact history-head">
       <div>
-        <p class="eyebrow">History</p>
-        <h2>最近执行</h2>
+        <h3 class="card-title">最近执行</h3>
       </div>
     </div>
 
@@ -1182,7 +1352,7 @@ async function executeSelectedCommand() {
 
   try {
     await runCommandExecution(payload, buildPreview(command));
-    setCurrentPage("results");
+    setCurrentPage("commands");
   } finally {
     button.disabled = false;
     button.textContent = originalText;
@@ -1292,7 +1462,7 @@ async function saveCurrentChapter() {
     await refreshDashboard();
     await refreshActiveChapter();
     renderOutputPanel();
-    setCurrentPage("results");
+    setCurrentPage("editor");
   } finally {
     button.disabled = false;
     button.textContent = originalText;
@@ -1303,7 +1473,7 @@ async function selectBook(bookId) {
   state.selectedBookId = bookId;
   state.selectedChapterNumber = null;
   await loadBookChapters(bookId);
-  setCurrentPage("workbench", { scroll: false });
+  setCurrentPage("works", { scroll: false });
   renderCommandPanel();
 }
 
@@ -1318,6 +1488,7 @@ async function loadBookChapters(bookId) {
     state.editorContent = "";
     state.editorDirty = false;
     renderChaptersPanel();
+    renderEditorContextPanel();
     renderEditorPanel();
     return;
   }
@@ -1343,8 +1514,9 @@ async function loadChapter(bookId, chapterNumber, options = {}) {
   renderBooksPanel();
   renderChaptersPanel();
   renderReviewsPanel();
+  renderEditorContextPanel();
   renderEditorPanel();
-  setCurrentPage("workbench", { scroll: !options.silentDirtyReset });
+  setCurrentPage("editor", { scroll: !options.silentDirtyReset });
   if (!options.silentDirtyReset) {
     renderCommandPanel();
   }
@@ -1666,36 +1838,44 @@ function renderPageNav() {
     return;
   }
 
-  const cards = [
-    {
-      key: "commands",
-      meta: `${state.commands.length} 条命令`,
-      detail: state.selectedCommandPath ? `当前 ${getCommandDisplayName(state.selectedCommandPath)}` : "选择命令开始执行",
-    },
-    {
-      key: "workbench",
-      meta: `${state.dashboard?.books?.length ?? 0} 本书 / ${state.chapters.length} 章`,
-      detail: state.selectedBookId ? `当前 ${getSelectedBook()?.title ?? state.selectedBookId}` : "先选择书籍与章节",
-    },
-    {
-      key: "results",
-      meta: `${state.history.length} 条历史`,
-      detail: state.execution ? `${state.execution.ok ? "最近成功" : "最近失败"} · ${getCommandDisplayName(state.execution.commandPath)}` : "查看最近输出与执行历史",
-    },
+  const pages = [
+    { key: "overview", badge: String(state.dashboard?.totals?.books ?? 0) },
+    { key: "editor", badge: state.activeChapter ? `第${state.activeChapter.chapter}章` : "未开章" },
+    { key: "works", badge: String(state.dashboard?.pendingReviews?.length ?? 0) },
+    { key: "imports", badge: "4" },
+    { key: "genres", badge: String(new Set((state.dashboard?.books ?? []).map((book) => book.genre)).size) },
+    { key: "commands", badge: String(state.commands.length) },
+    { key: "agent", badge: String(state.history.filter((item) => item.commandPath === "agent").length) },
+    { key: "aigc", badge: String(getAigcRiskEntries().length) },
+    { key: "settings", badge: state.meta?.cliBuilt ? "OK" : "!" },
   ];
 
-  refs.pageNav.innerHTML = cards
-    .map(({ key, meta, detail }) => {
+  refs.pageNav.innerHTML = pages
+    .map(({ key, badge }) => {
       const page = PAGE_DEFINITIONS[key];
       return `
-        <a class="page-nav-item ${state.currentPage === key ? "active" : ""}" href="${page.hash}">
-          <span class="page-nav-label">${escapeHtml(page.label)}</span>
-          <strong>${escapeHtml(meta)}</strong>
-          <small>${escapeHtml(detail)}</small>
+        <a class="nav-item ${state.currentPage === key ? "active" : ""}" href="${page.hash}">
+          <strong>
+            <span>${escapeHtml(page.label)}</span>
+            <span class="nav-badge">${escapeHtml(badge)}</span>
+          </strong>
+          <small>${escapeHtml(page.description)}</small>
         </a>
       `;
     })
     .join("");
+
+  renderCurrentPageMeta();
+}
+
+function renderCurrentPageMeta() {
+  const page = PAGE_DEFINITIONS[state.currentPage] ?? PAGE_DEFINITIONS.overview;
+  if (refs.pageTitle) {
+    refs.pageTitle.textContent = page.label;
+  }
+  if (refs.pageDescription) {
+    refs.pageDescription.textContent = page.description;
+  }
 }
 
 function renderPageJumpLinks(currentPage) {
@@ -1712,11 +1892,12 @@ function syncPageFromHash() {
   updatePageVisibility();
   renderToolbarSummary();
   renderPageNav();
+  renderCurrentPageMeta();
 }
 
 function setCurrentPage(page, options = {}) {
   const { scroll = true } = options;
-  const nextPage = PAGE_DEFINITIONS[page] ? page : "commands";
+  const nextPage = PAGE_DEFINITIONS[page] ? page : "overview";
   if (window.location.hash !== PAGE_DEFINITIONS[nextPage].hash) {
     window.location.hash = PAGE_DEFINITIONS[nextPage].hash;
     return;
@@ -1725,6 +1906,7 @@ function setCurrentPage(page, options = {}) {
   updatePageVisibility();
   renderToolbarSummary();
   renderPageNav();
+  renderCurrentPageMeta();
   if (scroll) {
     document.querySelector(PAGE_DEFINITIONS[nextPage].hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -1739,13 +1921,12 @@ function updatePageVisibility() {
 }
 
 function getPageFromHash(hash) {
-  if (hash === "#workbench" || hash === "#page-workbench") {
-    return "workbench";
+  for (const [key, page] of Object.entries(PAGE_DEFINITIONS)) {
+    if (hash === page.hash) {
+      return key;
+    }
   }
-  if (hash === "#execution-results" || hash === "#page-results") {
-    return "results";
-  }
-  return "commands";
+  return "overview";
 }
 
 function renderCommandOverview() {
@@ -1757,21 +1938,21 @@ function renderCommandOverview() {
   const visibleCommands = getVisibleCommands();
   const categories = new Set(visibleCommands.map((command) => command.uiCategoryLabel));
   const recentCommand = state.history.find((item) => item.kind !== "save");
-  const pathSuggestions = getProjectPathSuggestions();
-  const draftPath = state.projectCreatePath.trim();
+  const successCount = state.history.filter((item) => item.ok).length;
 
   refs.commandOverview.innerHTML = `
-    <div class="panel-head compact">
+    <div class="card-head">
       <div>
-        <p class="eyebrow">Command Overview</p>
-        <h2>命令页概览</h2>
+        <p class="section-kicker">Command Center</p>
+        <h3 class="card-title">CLI 命令驾驶台</h3>
+        <p class="card-subtitle">集中处理命令筛选、参数拼装、执行与控制台回看。</p>
       </div>
       <span class="badge">${visibleCommands.length} 条可见命令</span>
     </div>
     <div class="summary-grid compact-grid">
       <article class="summary-card"><span>业务分组</span><strong>${categories.size}</strong></article>
       <article class="summary-card"><span>当前命令</span><strong>${escapeHtml(selectedCommand?.uiLabel ?? "未选择")}</strong></article>
-      <article class="summary-card"><span>最近执行</span><strong>${escapeHtml(recentCommand ? getCommandDisplayName(recentCommand.commandPath) : "暂无")}</strong></article>
+      <article class="summary-card"><span>成功记录</span><strong>${successCount}</strong></article>
     </div>
     <div class="page-info-grid">
       <div class="info-card">
@@ -1784,53 +1965,25 @@ function renderCommandOverview() {
         </ul>
       </div>
       <div class="info-card">
-        <h3>当前上下文</h3>
+        <h3>执行上下文</h3>
         <p class="muted">${escapeHtml(state.selectedContext)}${state.selectedBookId ? ` · 已选书籍 ${escapeHtml(getSelectedBook()?.title ?? state.selectedBookId)}` : " · 未选书籍"}</p>
         <p class="muted">${state.search ? `正在按“${escapeHtml(state.search)}”筛选命令。` : "当前显示完整命令列表，可按中文或 path 搜索。"}</p>
       </div>
-      <div class="info-card project-create-card">
-        <h3>创建项目</h3>
-        <p class="muted">可输入工作区相对路径，也可直接浏览工作区与本机磁盘，选择绝对路径作为项目目录。</p>
-        <form id="project-create-form" class="project-create-form">
-          <label class="field">
-            <span>目标路径（相对或绝对） *</span>
-            <input id="project-create-path" name="targetPath" type="text" list="project-path-suggestions" value="${escapeAttribute(draftPath)}" placeholder="例如 novels/my-next-book 或 D:/Novels/demo-project" />
-            <small>相对路径将以 ${escapeHtml(state.meta?.workspaceRoot ?? "当前工作区")} 为基准；绝对路径会直接使用你选择的目录。</small>
-          </label>
-          <datalist id="project-path-suggestions">
-            ${pathSuggestions.map((path) => `<option value="${escapeAttribute(path === "." ? "" : path)}"></option>`).join("")}
-          </datalist>
-          <div class="project-path-preview" id="project-path-preview"></div>
-          <div class="path-tree-card">
-            <div class="path-tree-head">
-              <div>
-                <strong>目录树浏览器</strong>
-                <p class="muted path-tree-caption">工作区与本机磁盘可同时浏览，点击目录名即可把路径填入输入框。</p>
-              </div>
-              <div class="path-tree-tools">
-                <button class="ghost" type="button" data-action="select-path-parent" ${getPathParent(draftPath) ? "" : "disabled"}>上一级</button>
-                <button class="ghost" type="button" data-action="reload-path-tree">刷新目录</button>
-              </div>
-            </div>
-            <div class="path-breadcrumbs">${renderPathBreadcrumbs(draftPath)}</div>
-            <div class="path-tree-shell">
-              ${renderPathTree()}
-            </div>
-          </div>
-          <div class="card-actions project-create-actions">
-            <button class="primary" type="submit">创建项目</button>
-            <button class="secondary" type="button" data-action="use-selected-context-path">使用当前上下文路径</button>
-          </div>
-        </form>
+      <div class="command-brief">
+        <h3>最近动作</h3>
+        <p class="muted">${escapeHtml(recentCommand ? getCommandDisplayName(recentCommand.commandPath) : "暂无执行记录")}</p>
+        <div class="card-actions">
+          <button class="ghost" data-command-path="status">项目状态</button>
+          <button class="ghost" data-command-path="review list">待审列表</button>
+          <button class="ghost" data-command-path="doctor">环境诊断</button>
+        </div>
       </div>
     </div>
   `;
-
-  updateProjectPathPreview();
 }
 
-function renderWorkbenchOverview() {
-  if (!refs.workbenchOverview) {
+function renderWorksOverview() {
+  if (!refs.worksOverview) {
     return;
   }
 
@@ -1841,11 +1994,12 @@ function renderWorkbenchOverview() {
     ? Math.max(0, Math.min(100, Math.round((selectedBook.chapters / selectedBook.targetChapters) * 100)))
     : 0;
 
-  refs.workbenchOverview.innerHTML = `
-    <div class="panel-head compact">
+  refs.worksOverview.innerHTML = `
+    <div class="card-head">
       <div>
-        <p class="eyebrow">Workbench Overview</p>
-        <h2>工作台概览</h2>
+        <p class="section-kicker">Works Manager</p>
+        <h3 class="card-title">作品管理台</h3>
+        <p class="card-subtitle">围绕书籍规则、章节进度、审阅与修订组织当前项目。</p>
       </div>
       <span class="badge">${selectedBook ? "已聚焦书籍" : "等待选择"}</span>
     </div>
@@ -1881,6 +2035,484 @@ function renderWorkbenchOverview() {
   `;
 }
 
+function renderOverviewPanel() {
+  if (!refs.overviewPanel) {
+    return;
+  }
+
+  const totals = state.dashboard?.totals ?? { books: 0, chapters: 0, words: 0, pendingReviews: 0 };
+  const selectedBook = getSelectedBook();
+  const latest = state.history[0];
+
+  refs.overviewPanel.innerHTML = `
+    <div class="card-head">
+      <div>
+        <p class="section-kicker">Studio Overview</p>
+        <h3 class="card-title">总览驾驶舱</h3>
+        <p class="card-subtitle">把创作编辑、作品管理、命令执行和检测流程集中在同一套工作台中。</p>
+      </div>
+      <span class="badge ${state.dashboard?.initialized ? "success" : "warning"}">${state.dashboard?.initialized ? "项目已初始化" : "等待初始化"}</span>
+    </div>
+
+    <div class="overview-grid">
+      <section class="section-block">
+        <div class="overview-focus-grid">
+          <article class="highlight-card">
+            <span class="section-kicker">Focus</span>
+            <h3>当前写作焦点</h3>
+            <p>${selectedBook ? `正在跟进《${escapeHtml(selectedBook.title)}》` : "当前还没有选中书籍"}</p>
+            <div class="workspace-facts">
+              <span class="status-chip active">书籍 ${totals.books}</span>
+              <span class="status-chip ${totals.pendingReviews > 0 ? "active" : ""}">待审 ${totals.pendingReviews}</span>
+              <span class="status-chip ${state.editorDirty ? "active" : ""}">${state.editorDirty ? "正文未保存" : "正文已同步"}</span>
+            </div>
+          </article>
+          <article class="highlight-card">
+            <span class="section-kicker">Execution</span>
+            <h3>最近命令</h3>
+            <p>${escapeHtml(latest ? getCommandDisplayName(latest.commandPath) : "暂无")}</p>
+            <div class="workspace-facts">
+              <span class="status-chip ${latest?.ok ? "active" : ""}">${latest ? getHistoryOutcomeLabel(latest) : "尚未执行"}</span>
+              <span class="status-chip">历史 ${state.history.length}</span>
+            </div>
+          </article>
+          <article class="highlight-card">
+            <span class="section-kicker">Health</span>
+            <h3>项目健康度</h3>
+            <p>${totals.pendingReviews > 0 ? "存在待审章节，建议先处理审阅闭环。" : "当前审阅队列较干净，可继续推进写作。"}</p>
+            <div class="workspace-facts">
+              <span class="status-chip ${state.meta?.cliBuilt ? "active" : ""}">${state.meta?.cliBuilt ? "CLI 就绪" : "CLI 未构建"}</span>
+              <span class="status-chip">字数 ${formatNumber(totals.words)}</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="section-block workspace-brief">
+          <h3>创作链路</h3>
+          <div class="workspace-flow">
+            <article class="flow-step"><strong>1. 文本导入</strong><p class="muted">导入设定、文风样本或番外目标。</p></article>
+            <article class="flow-step"><strong>2. 创作编辑</strong><p class="muted">围绕章节正文进行编写、预览和保存。</p></article>
+            <article class="flow-step"><strong>3. 审阅修订</strong><p class="muted">执行审计、审阅通过或修订重写。</p></article>
+            <article class="flow-step"><strong>4. 检测与配置</strong><p class="muted">处理 AIGC 风险并维护项目与全局设置。</p></article>
+          </div>
+        </div>
+      </section>
+
+      <aside class="section-block">
+        <div class="action-card">
+          <div class="action-card-head">
+            <strong>快速入口</strong>
+            <span class="badge">Studio</span>
+          </div>
+          <div class="quick-link-grid">
+            <a class="page-jump-link" href="#page-editor">打开编辑器</a>
+            <a class="page-jump-link" href="#page-works">管理作品</a>
+            <a class="page-jump-link" href="#page-commands">执行命令</a>
+            <a class="page-jump-link" href="#page-settings">进入配置</a>
+          </div>
+        </div>
+        <div class="info-card">
+          <h3>当前项目</h3>
+          <ul class="plain-list">
+            <li><span>上下文</span><strong>${escapeHtml(state.selectedContext)}</strong></li>
+            <li><span>书籍数</span><strong>${totals.books}</strong></li>
+            <li><span>章节数</span><strong>${totals.chapters}</strong></li>
+            <li><span>待审数</span><strong>${totals.pendingReviews}</strong></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  `;
+}
+
+function renderEditorContextPanel() {
+  if (!refs.editorContextPanel) {
+    return;
+  }
+
+  const selectedBook = getSelectedBook();
+  const chapter = state.activeChapter;
+
+  refs.editorContextPanel.innerHTML = `
+    <div class="card-head">
+      <div>
+        <p class="section-kicker">Editor Context</p>
+        <h3 class="card-title">创作上下文</h3>
+      </div>
+      <span class="badge">${selectedBook ? "已选书籍" : "未选择"}</span>
+    </div>
+    ${selectedBook ? `
+      <div class="info-card">
+        <h3>当前书籍</h3>
+        <ul class="plain-list">
+          <li><span>书名</span><strong>${escapeHtml(selectedBook.title)}</strong></li>
+          <li><span>题材</span><strong>${escapeHtml(GENRE_LABELS[selectedBook.genre] ?? selectedBook.genre)}</strong></li>
+          <li><span>平台</span><strong>${escapeHtml(PLATFORM_LABELS[selectedBook.platform] ?? selectedBook.platform)}</strong></li>
+          <li><span>进度</span><strong>${selectedBook.targetChapters > 0 ? `${Math.round((selectedBook.chapters / selectedBook.targetChapters) * 100)}%` : "--"}</strong></li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h3>当前章节</h3>
+        ${chapter ? `
+          <ul class="plain-list">
+            <li><span>章节</span><strong>第 ${chapter.chapter} 章</strong></li>
+            <li><span>状态</span><strong>${escapeHtml(CHAPTER_STATUS_LABELS[chapter.status] ?? chapter.status)}</strong></li>
+            <li><span>字数</span><strong>${formatNumber(estimateWordCountFromText(state.editorContent || chapter.content))}</strong></li>
+            <li><span>问题</span><strong>${chapter.auditIssues.length}</strong></li>
+          </ul>
+        ` : `<p class="muted">先在作品管理中选择章节，或直接从待审列表进入。</p>`}
+      </div>
+      <div class="info-card">
+        <h3>快捷动作</h3>
+        <div class="card-actions">
+          <button class="ghost" data-command-path="write next" data-book-id="${escapeAttribute(selectedBook.id)}">续写下一章</button>
+          <button class="ghost" data-command-path="audit" data-book-id="${escapeAttribute(selectedBook.id)}" ${chapter ? `data-chapter="${chapter.chapter}"` : "disabled"}>审计当前章</button>
+          <button class="ghost" data-command-path="review list">查看待审</button>
+        </div>
+      </div>
+    ` : `
+      <div class="empty-state"><p>先去作品管理页选择一本书，或在命令中心执行 status / book create。</p></div>
+    `}
+  `;
+}
+
+function renderImportsPanel() {
+  if (!refs.importsPanel) {
+    return;
+  }
+
+  const selectedBookId = state.selectedBookId || "";
+
+  refs.importsPanel.innerHTML = `
+    <div class="card-head">
+      <div>
+        <p class="section-kicker">Import Studio</p>
+        <h3 class="card-title">文本导入与仿写工作流</h3>
+        <p class="card-subtitle">围绕文风仿写、番外写作、设定导入和章节迁移组织入口。</p>
+      </div>
+      <span class="badge">4 类流程</span>
+    </div>
+    <div class="imports-grid">
+      <article class="action-card">
+        <div class="action-card-head"><strong>文风仿写</strong><span class="badge">Style</span></div>
+        <label class="field">
+          <span>样本文本文件</span>
+          <input id="style-source-file" type="text" placeholder="例如 D:/samples/style.txt" />
+        </label>
+        <label class="field">
+          <span>样本名称</span>
+          <input id="style-source-name" type="text" placeholder="例如 某作者样本" />
+        </label>
+        <label class="field">
+          <span>目标书籍 ID</span>
+          <input id="import-target-book" type="text" value="${escapeAttribute(selectedBookId)}" placeholder="留空则在命令中心再选择" />
+        </label>
+        <div class="card-actions">
+          <button class="ghost" data-action="prepare-style-analyze">预填文风分析</button>
+          <button class="ghost" data-action="prepare-style-import">预填文风导入</button>
+        </div>
+      </article>
+      <article class="action-card">
+        <div class="action-card-head"><strong>番外与草稿</strong><span class="badge">Draft</span></div>
+        <label class="field">
+          <span>书籍 ID</span>
+          <input id="draft-book-id" type="text" value="${escapeAttribute(selectedBookId)}" placeholder="例如 my-book" />
+        </label>
+        <label class="field">
+          <span>目标字数</span>
+          <input id="draft-words" type="text" placeholder="例如 2500" />
+        </label>
+        <label class="field">
+          <span>创作说明</span>
+          <input id="draft-context" type="text" placeholder="例如 写一章番外，聚焦配角视角" />
+        </label>
+        <div class="card-actions">
+          <button class="ghost" data-action="prepare-draft">预填草稿写作</button>
+          <button class="ghost" data-command-path="write next" data-book-id="${escapeAttribute(selectedBookId)}" ${selectedBookId ? "" : "disabled"}>续写下一章</button>
+        </div>
+      </article>
+      <article class="action-card">
+        <div class="action-card-head"><strong>设定导入</strong><span class="badge">Canon</span></div>
+        <label class="field">
+          <span>目标书籍 ID</span>
+          <input type="text" value="${escapeAttribute(selectedBookId)}" disabled />
+        </label>
+        <label class="field">
+          <span>父作品 ID</span>
+          <input id="canon-parent-book" type="text" placeholder="例如 parent-book" />
+        </label>
+        <div class="card-actions">
+          <button class="ghost" data-action="prepare-import-canon">预填正典导入</button>
+          <button class="ghost" data-command-path="genre list">查看题材库</button>
+        </div>
+      </article>
+      <article class="action-card">
+        <div class="action-card-head"><strong>章节迁移</strong><span class="badge">Import</span></div>
+        <label class="field">
+          <span>导入文件或目录</span>
+          <input id="chapter-import-path" type="text" placeholder="例如 D:/novel/chapters 或 D:/novel/all.txt" />
+        </label>
+        <div class="card-actions">
+          <button class="ghost" data-action="prepare-import-chapters">预填章节导入</button>
+          <button class="ghost" data-command-path="status">查看项目状态</button>
+        </div>
+      </article>
+    </div>
+  `;
+}
+
+function renderGenresPanel() {
+  if (!refs.genresPanel) {
+    return;
+  }
+
+  const books = state.dashboard?.books ?? [];
+  const distribution = Object.entries(books.reduce((accumulator, book) => {
+    accumulator[book.genre] = (accumulator[book.genre] ?? 0) + 1;
+    return accumulator;
+  }, {}));
+
+  refs.genresPanel.innerHTML = `
+    <div class="card-head">
+      <div>
+        <p class="section-kicker">Genre Library</p>
+        <h3 class="card-title">题材管理台</h3>
+        <p class="card-subtitle">查看项目题材分布，并快速进入题材列表、复制和创建命令。</p>
+      </div>
+      <span class="badge">${distribution.length} 种题材</span>
+    </div>
+    <div class="genre-grid">
+      <div class="section-block">
+        <div class="info-card">
+          <h3>项目题材分布</h3>
+          ${distribution.length > 0 ? `
+            <div class="genre-list">
+              ${distribution.map(([genre, count]) => `
+                <div class="genre-list-item">
+                  <strong>${escapeHtml(GENRE_LABELS[genre] ?? genre)}</strong>
+                  <p class="muted">当前项目中有 ${count} 本作品使用该题材。</p>
+                  <div class="card-actions">
+                    <button class="ghost" data-command-path="genre show" data-id="${escapeAttribute(genre)}">查看规则</button>
+                    <button class="ghost" data-command-path="genre copy" data-id="${escapeAttribute(genre)}">复制到项目</button>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          ` : `<p class="muted">当前项目还没有书籍，暂时没有题材分布。</p>`}
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="action-card">
+          <div class="action-card-head"><strong>题材命令</strong><span class="badge">Genre</span></div>
+          <div class="card-actions">
+            <button class="ghost" data-command-path="genre list">查看题材库</button>
+            <button class="ghost" data-command-path="genre create">创建题材模板</button>
+            <button class="ghost" data-command-path="style analyze">分析文风</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAgentPanel() {
+  if (!refs.agentPanel) {
+    return;
+  }
+
+  refs.agentPanel.innerHTML = `
+    <div class="card-head">
+      <div>
+        <p class="section-kicker">Agent Workspace</p>
+        <h3 class="card-title">智能体问答与指令编排</h3>
+        <p class="card-subtitle">在进入 agent 命令前，先整理问题、上下文和希望产出的结果。</p>
+      </div>
+      <span class="badge">自然语言驱动</span>
+    </div>
+    <div class="agent-grid">
+      <div class="agent-composer">
+        <label class="editor-label" for="agent-prompt-input">发送给 Agent 的问题</label>
+        <textarea id="agent-prompt-input" placeholder="例如：基于当前书籍的主线和待审问题，给出下一章写作策略与情节安排。"></textarea>
+        <label class="field">
+          <span>补充上下文</span>
+          <input id="agent-context-input" type="text" placeholder="例如 当前主角要在下一章完成第一次反击" />
+        </label>
+        <label class="field">
+          <span>最大轮次</span>
+          <input id="agent-max-turns-input" type="text" value="20" />
+        </label>
+        <div class="action-row">
+          <button class="primary" data-action="open-agent-command">带入命令中心</button>
+          <button class="ghost" data-command-path="agent">直接打开 agent 命令</button>
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="info-card">
+          <h3>推荐提问</h3>
+          <div class="agent-suggestion-list">
+            <div class="agent-suggestion-card"><strong>剧情规划</strong><p class="muted">让 agent 生成下一章大纲、节奏和冲突建议。</p></div>
+            <div class="agent-suggestion-card"><strong>风格校准</strong><p class="muted">让 agent 基于当前书籍和章节状态校正文风。</p></div>
+            <div class="agent-suggestion-card"><strong>问题修复</strong><p class="muted">让 agent 结合审计问题和 review note 给出修订方案。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAigcPanel() {
+  if (!refs.aigcPanel) {
+    return;
+  }
+
+  const entries = getAigcRiskEntries();
+  const maxRisk = entries[0]?.score ?? 0;
+
+  refs.aigcPanel.innerHTML = `
+    <div class="card-head">
+      <div>
+        <p class="section-kicker">AIGC Risk Desk</p>
+        <h3 class="card-title">AIGC 检测与风险处理</h3>
+        <p class="card-subtitle">聚合待审章节、问题数和推荐动作，优先处理高风险内容。</p>
+      </div>
+      <span class="badge ${entries.length > 0 ? "warning" : "success"}">${entries.length > 0 ? `${entries.length} 条风险线索` : "暂无明显风险"}</span>
+    </div>
+    <div class="aigc-grid">
+      <div class="aigc-hero">
+        <label class="field">
+          <span>书籍 ID</span>
+          <input id="aigc-book-id" type="text" value="${escapeAttribute(state.selectedBookId || "")}" placeholder="例如 my-book" />
+        </label>
+        <label class="field">
+          <span>章节号</span>
+          <input id="aigc-chapter" type="text" value="${escapeAttribute(state.selectedChapterNumber ? String(state.selectedChapterNumber) : "")}" placeholder="例如 12" />
+        </label>
+        <div class="risk-meter">
+          <strong>当前最高风险</strong>
+          <div class="risk-track"><span class="risk-fill" style="width:${maxRisk}%"></span></div>
+          <p class="muted">该分值基于章节问题数、待审状态和当前章节上下文做前端聚合展示。</p>
+        </div>
+        <div class="card-actions">
+          <button class="ghost" data-action="prepare-detect">预填当前检测</button>
+          <button class="ghost" data-action="prepare-detect-all">预填全量检测</button>
+          <button class="ghost" data-action="prepare-detect-stats">预填检测统计</button>
+          <button class="ghost" data-command-path="audit">执行章节审计</button>
+          <button class="ghost" data-command-path="style analyze">分析文风</button>
+        </div>
+      </div>
+      <div class="risk-list">
+        ${entries.length > 0 ? entries.map((entry) => `
+          <div class="risk-item">
+            <div>
+              <strong>${escapeHtml(entry.title)}</strong>
+              <p class="muted">${escapeHtml(entry.reason)}</p>
+            </div>
+            <span class="badge ${entry.score >= 75 ? "danger" : entry.score >= 45 ? "warning" : "success"}">${entry.score}</span>
+          </div>
+        `).join("") : `<div class="empty-state tiny"><p>当前没有需要特别关注的风险项。</p></div>`}
+      </div>
+    </div>
+  `;
+}
+
+function renderSettingsPanel() {
+  if (!refs.settingsPanel) {
+    return;
+  }
+
+  const pathSuggestions = getProjectPathSuggestions();
+  const draftPath = state.projectCreatePath.trim();
+
+  refs.settingsPanel.innerHTML = `
+    <div class="card-head">
+      <div>
+        <p class="section-kicker">Settings</p>
+        <h3 class="card-title">全局配置与项目配置</h3>
+        <p class="card-subtitle">维护项目路径、CLI 环境、全局配置和诊断入口。</p>
+      </div>
+      <span class="badge ${state.meta?.cliBuilt ? "success" : "warning"}">${state.meta?.cliBuilt ? "CLI 就绪" : "CLI 未构建"}</span>
+    </div>
+    <div class="settings-grid">
+      <div class="section-block">
+        <div class="info-card">
+          <h3>配置动作</h3>
+          <div class="card-actions">
+            <button class="ghost" data-command-path="config set">项目配置</button>
+            <button class="ghost" data-command-path="config set-global">全局配置</button>
+            <button class="ghost" data-command-path="doctor">环境诊断</button>
+            <button class="ghost" data-command-path="update">更新 CLI</button>
+            <button class="ghost" data-command-path="init">初始化项目</button>
+          </div>
+        </div>
+        <div class="info-card">
+          <h3>快速修改项目配置</h3>
+          <label class="field">
+            <span>配置键</span>
+            <input id="config-key-input" type="text" placeholder="例如 llm.model" />
+          </label>
+          <label class="field">
+            <span>配置值</span>
+            <input id="config-value-input" type="text" placeholder="例如 gpt-4.1" />
+          </label>
+          <div class="card-actions">
+            <button class="ghost" data-action="prepare-config-set">预填 config set</button>
+            <button class="ghost" data-action="prepare-show-global">查看全局配置</button>
+            <button class="ghost" data-action="prepare-show-models">查看模型路由</button>
+          </div>
+        </div>
+        <div class="info-card project-create-card">
+          <h3>创建项目</h3>
+          <p class="muted">支持工作区相对路径和本机绝对路径，方便直接创建新的 InkOS 项目。</p>
+          <form id="project-create-form" class="project-create-form">
+            <label class="field">
+              <span>目标路径（相对或绝对） *</span>
+              <input id="project-create-path" name="targetPath" type="text" list="project-path-suggestions" value="${escapeAttribute(draftPath)}" placeholder="例如 novels/my-next-book 或 D:/Novels/demo-project" />
+              <small>相对路径将以 ${escapeHtml(state.meta?.workspaceRoot ?? "当前工作区")} 为基准；绝对路径会直接使用你选择的目录。</small>
+            </label>
+            <datalist id="project-path-suggestions">
+              ${pathSuggestions.map((path) => `<option value="${escapeAttribute(path === "." ? "" : path)}"></option>`).join("")}
+            </datalist>
+            <div class="project-path-preview" id="project-path-preview"></div>
+            <div class="path-tree-card">
+              <div class="path-tree-head">
+                <div>
+                  <strong>目录树浏览器</strong>
+                  <p class="muted path-tree-caption">工作区与本机磁盘可同时浏览，点击目录名即可把路径填入输入框。</p>
+                </div>
+                <div class="path-tree-tools">
+                  <button class="ghost" type="button" data-action="select-path-parent" ${getPathParent(draftPath) ? "" : "disabled"}>上一级</button>
+                  <button class="ghost" type="button" data-action="reload-path-tree">刷新目录</button>
+                </div>
+              </div>
+              <div class="path-breadcrumbs">${renderPathBreadcrumbs(draftPath)}</div>
+              <div class="path-tree-shell">
+                ${renderPathTree()}
+              </div>
+            </div>
+            <div class="card-actions project-create-actions">
+              <button class="primary" type="submit">创建项目</button>
+              <button class="secondary" type="button" data-action="use-selected-context-path">使用当前上下文路径</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="info-card">
+          <h3>当前环境</h3>
+          <ul class="plain-list">
+            <li><span>上下文</span><strong>${escapeHtml(state.selectedContext)}</strong></li>
+            <li><span>CLI 状态</span><strong>${state.meta?.cliBuilt ? "已构建" : "未构建"}</strong></li>
+            <li><span>命令数</span><strong>${state.commands.length}</strong></li>
+            <li><span>上下文总数</span><strong>${state.contexts.length}</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  `;
+
+  updateProjectPathPreview();
+}
+
 function renderResultsSidebar() {
   if (!refs.resultsSidebar) {
     return;
@@ -1894,12 +2526,11 @@ function renderResultsSidebar() {
   const lastExecution = state.execution;
 
   refs.resultsSidebar.innerHTML = `
-    <div class="panel-head compact">
+    <div class="card-head">
       <div>
-        <p class="eyebrow">Results Sidebar</p>
-        <h2>结果摘要侧栏</h2>
+        <h3 class="card-title">结果摘要</h3>
       </div>
-      <span class="badge">${filteredHistory.length} 条命中</span>
+      <span class="badge">${filteredHistory.length} 条</span>
     </div>
     <div class="summary-grid compact-grid single-column-grid">
       <article class="summary-card"><span>成功记录</span><strong>${successCount}</strong></article>
@@ -1930,6 +2561,105 @@ function renderResultsSidebar() {
       ${recentContexts.length > 0 ? `<div class="context-chip-list">${recentContexts.map((context) => `<span>${escapeHtml(context)}</span>`).join("")}</div>` : `<p class="muted">当前筛选下还没有上下文记录。</p>`}
     </div>
   `;
+}
+
+function renderModuleActionCard(title, description, actions) {
+  return `
+    <article class="action-card">
+      <div class="action-card-head">
+        <strong>${escapeHtml(title)}</strong>
+      </div>
+      <p class="muted">${escapeHtml(description)}</p>
+      <div class="card-actions">${actions.join("")}</div>
+    </article>
+  `;
+}
+
+function commandAction(label, commandPath, dataset = {}) {
+  const attrs = Object.entries(dataset)
+    .map(([key, value]) => `data-${toDatasetKey(key)}="${escapeAttribute(String(value))}"`)
+    .join(" ");
+  return `<button class="ghost" data-command-path="${escapeAttribute(commandPath)}" ${attrs}>${escapeHtml(label)}</button>`;
+}
+
+function getAigcRiskEntries() {
+  const pendingReviews = (state.dashboard?.pendingReviews ?? []).map((review) => ({
+    title: `${review.title} · 第 ${review.chapter} 章`,
+    score: Math.min(96, 48 + review.issueCount * 11),
+    reason: `${review.issueCount} 个问题待处理，当前状态为 ${CHAPTER_STATUS_LABELS[review.status] ?? review.status}`,
+  }));
+
+  const currentChapters = state.chapters.map((chapter) => ({
+    title: `${getSelectedBook()?.title ?? state.selectedBookId} · 第 ${chapter.number} 章`,
+    score: Math.min(92, chapter.auditIssues.length * 16 + (chapter.status !== "approved" ? 22 : 0)),
+    reason: `${chapter.auditIssues.length} 个审计问题，最近更新时间 ${formatDateTime(chapter.updatedAt)}`,
+  }));
+
+  return [...pendingReviews, ...currentChapters]
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 6);
+}
+
+function updateEditorPreview() {
+  const preview = refs.editorPanel.querySelector(".markdown-preview-body");
+  if (!preview) {
+    return;
+  }
+  preview.innerHTML = renderMarkdownPreview(state.editorContent);
+}
+
+function renderMarkdownPreview(markdown) {
+  const source = String(markdown || "").replace(/\r\n/g, "\n");
+  if (!source.trim()) {
+    return `<p class="muted">当前章节还没有正文，保存或导入后会在这里显示 Markdown 预览。</p>`;
+  }
+
+  const escaped = escapeHtml(source);
+  const blocks = escaped
+    .replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`)
+    .replace(/^####\s+(.+)$/gm, "<h4>$1</h4>")
+    .replace(/^###\s+(.+)$/gm, "<h3>$1</h3>")
+    .replace(/^##\s+(.+)$/gm, "<h2>$1</h2>")
+    .replace(/^#\s+(.+)$/gm, "<h1>$1</h1>")
+    .replace(/^>\s+(.+)$/gm, "<blockquote>$1</blockquote>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  const lines = blocks.split("\n");
+  const output = [];
+  let listBuffer = [];
+
+  const flushList = () => {
+    if (listBuffer.length === 0) {
+      return;
+    }
+    output.push(`<ul>${listBuffer.join("")}</ul>`);
+    listBuffer = [];
+  };
+
+  for (const line of lines) {
+    if (/^<h\d|^<blockquote|^<pre>/.test(line)) {
+      flushList();
+      output.push(line);
+      continue;
+    }
+    const listMatch = line.match(/^[-*]\s+(.+)$/);
+    if (listMatch) {
+      listBuffer.push(`<li>${listMatch[1]}</li>`);
+      continue;
+    }
+    if (!line.trim()) {
+      flushList();
+      continue;
+    }
+    flushList();
+    output.push(`<p>${line}</p>`);
+  }
+
+  flushList();
+  return output.join("");
 }
 
 function getVisibleCommands() {
@@ -1975,7 +2705,7 @@ async function togglePathNode(path) {
   const targetPath = String(path || ".");
   if (state.pathTreeExpanded.includes(targetPath)) {
     state.pathTreeExpanded = state.pathTreeExpanded.filter((item) => item !== targetPath);
-    renderCommandOverview();
+    renderSettingsPanel();
     return;
   }
 
@@ -1983,7 +2713,7 @@ async function togglePathNode(path) {
   if (!state.pathTreeExpanded.includes(targetPath)) {
     state.pathTreeExpanded = [...state.pathTreeExpanded, targetPath];
   }
-  renderCommandOverview();
+  renderSettingsPanel();
 }
 
 function renderPathTree() {
@@ -2049,8 +2779,8 @@ function normalizeTreeSelectablePath(path) {
 }
 
 async function createProjectFromOverview() {
-  const input = refs.commandOverview.querySelector("#project-create-path");
-  const button = refs.commandOverview.querySelector("#project-create-form button[type='submit']");
+  const input = refs.settingsPanel.querySelector("#project-create-path");
+  const button = refs.settingsPanel.querySelector("#project-create-form button[type='submit']");
   const targetPath = String(input?.value ?? state.projectCreatePath ?? "").trim();
 
   state.projectCreatePath = targetPath;
@@ -2107,7 +2837,7 @@ async function createProjectFromOverview() {
 
     if (!response.ok) {
       renderOutputPanel();
-      setCurrentPage("results");
+      setCurrentPage("settings");
       return;
     }
 
@@ -2124,9 +2854,9 @@ async function createProjectFromOverview() {
     renderCommandGroups();
     renderCommandPanel();
     renderCommandOverview();
-    renderWorkbenchOverview();
+    renderWorksOverview();
     renderOutputPanel();
-    setCurrentPage("results");
+    setCurrentPage("settings");
   } finally {
     if (button) {
       button.disabled = false;
@@ -2136,7 +2866,7 @@ async function createProjectFromOverview() {
 }
 
 function updateProjectPathPreview(message) {
-  const preview = refs.commandOverview.querySelector("#project-path-preview");
+  const preview = refs.settingsPanel.querySelector("#project-path-preview");
   if (!preview) {
     return;
   }
@@ -2146,7 +2876,7 @@ function updateProjectPathPreview(message) {
     return;
   }
 
-  const targetPath = String(refs.commandOverview.querySelector("#project-create-path")?.value ?? state.projectCreatePath ?? "").trim();
+  const targetPath = String(refs.settingsPanel.querySelector("#project-create-path")?.value ?? state.projectCreatePath ?? "").trim();
   if (!targetPath) {
     preview.textContent = "请选择或输入一个目录路径，可为工作区相对路径，也可为系统绝对路径。";
     return;

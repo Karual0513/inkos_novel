@@ -3,114 +3,113 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>InkOS Studio 写作工作台</title>
+    <title>InkOS Web Studio</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="hero card">
-        <div>
-          <p class="eyebrow">InkOS Studio</p>
-          <h1>把命令行写作流程变成中文创作工作台</h1>
-          <p class="hero-copy">
-            这个工作台直接读取 InkOS 的命令结构，在本地执行真实 CLI，并把审阅、修订、写作和章节编辑放到同一张网页里。
-          </p>
-          <div class="hero-actions">
-            <a class="hero-link" href="#page-commands">进入命令中心</a>
-            <a class="hero-link" href="#page-workbench">打开编辑工作台</a>
-            <a class="hero-link" href="#page-results">查看执行结果</a>
-          </div>
-        </div>
-        <div class="hero-grid">
-          <div class="hero-chip">
-            <span>packages/core</span>
-            <strong>引擎、状态与章节存储</strong>
-          </div>
-          <div class="hero-chip">
-            <span>packages/cli</span>
-            <strong>命令、代理与写作流程</strong>
-          </div>
-          <div class="hero-chip accent">
-            <span>packages/web</span>
-            <strong>中文命令中心与审阅编辑层</strong>
-          </div>
-        </div>
-      </header>
-
-      <section class="toolbar card">
-        <div class="toolbar-main">
+    <div class="studio-shell">
+      <aside class="studio-sidebar">
+        <div class="brand-block">
+          <div class="brand-mark">IS</div>
           <div>
-            <label for="context-select">项目上下文</label>
-            <select id="context-select"></select>
-          </div>
-          <div class="toolbar-actions">
-            <button class="ghost" id="refresh-dashboard" type="button">刷新工作台</button>
+            <p class="brand-kicker">InkOS</p>
+            <h1>Web Studio</h1>
+            <p class="brand-copy">围绕创作、审阅、命令与配置的中文工作台</p>
           </div>
         </div>
-        <div class="toolbar-side">
-          <div class="toolbar-note" id="cli-status"></div>
-          <div class="toolbar-summary" id="toolbar-summary"></div>
+
+        <label class="context-field" for="context-select">
+          <span>项目上下文</span>
+          <select id="context-select" title="选择项目上下文"></select>
+        </label>
+
+        <nav class="studio-nav" id="page-nav"></nav>
+
+        <div class="sidebar-status">
+          <div class="status-line">
+            <span class="cli-dot" id="cli-status-dot"></span>
+            <span id="cli-status"></span>
+          </div>
+          <button class="secondary block-btn" id="refresh-dashboard" type="button">刷新工作台</button>
         </div>
-      </section>
+      </aside>
 
-      <section class="dashboard-grid" id="dashboard-cards"></section>
-      <section class="page-nav card" id="page-nav"></section>
+      <div class="studio-main">
+        <header class="workspace-header">
+          <div>
+            <p class="page-kicker">InkOS Studio</p>
+            <h2 id="page-title">总览驾驶舱</h2>
+            <p id="page-description">查看项目状态、近期命令与写作链路。</p>
+          </div>
+          <div class="workspace-header-side">
+            <div class="toolbar-summary" id="toolbar-summary"></div>
+          </div>
+        </header>
 
-      <main class="page-stack">
-        <section class="view-page" id="page-commands" data-page="commands">
-          <div class="view-intro card">
-            <p class="eyebrow">Subpage</p>
-            <h2>命令中心</h2>
-            <p>集中筛选命令、预填参数，并在这里完成执行前检查。</p>
-          </div>
-          <section class="card page-overview" id="command-overview"></section>
-          <div class="main-grid commands-layout">
-            <aside class="sidebar card" id="command-center">
-              <div class="sidebar-head">
-                <div>
-                  <p class="eyebrow">Command Center</p>
-                  <h2>中文命令中心</h2>
-                  <p class="muted">按业务分组筛选命令，再在右侧用中文表单执行。</p>
-                </div>
-                <input id="command-search" type="search" placeholder="搜索中文命令、英文 path 或说明" />
-              </div>
-              <div id="command-groups" class="command-groups"></div>
-            </aside>
-            <section class="command-panel card" id="command-panel"></section>
-          </div>
-        </section>
+        <section class="dashboard-grid" id="dashboard-cards"></section>
 
-        <section class="view-page" id="page-workbench" data-page="workbench">
-          <div class="view-intro card">
-            <p class="eyebrow">Subpage</p>
-            <h2>编辑工作台</h2>
-            <p>专注处理书籍、章节、待审队列和正文修改，避免命令表单打断编辑流程。</p>
-          </div>
-          <section class="card page-overview" id="workbench-overview"></section>
-          <section class="workbench-grid" id="workbench">
-            <div class="stack-column">
-              <section class="card" id="books-panel"></section>
-              <section class="card" id="chapters-panel"></section>
-              <section class="card" id="reviews-panel"></section>
-            </div>
-            <section class="card editor-panel" id="editor-panel"></section>
+        <main class="page-stack">
+          <section class="view-page" id="page-overview" data-page="overview">
+            <section class="studio-card" id="overview-panel"></section>
           </section>
-        </section>
 
-        <section class="view-page" id="page-results" data-page="results">
-          <div class="view-intro card">
-            <p class="eyebrow">Subpage</p>
-            <h2>执行结果</h2>
-            <p>集中查看结构化输出、原始 stdout/stderr 和最近执行历史。</p>
-          </div>
-          <div id="execution-results"></div>
-          <div class="results-page-grid">
-            <section class="output-panel card" id="output-panel"></section>
-            <aside class="card results-sidebar" id="results-sidebar"></aside>
-          </div>
-        </section>
-      </main>
+          <section class="view-page" id="page-editor" data-page="editor">
+            <div class="editor-page-grid">
+              <aside class="studio-card" id="editor-context-panel"></aside>
+              <section class="studio-card editor-panel" id="editor-panel"></section>
+            </div>
+          </section>
+
+          <section class="view-page" id="page-works" data-page="works">
+            <section class="studio-card" id="works-overview"></section>
+            <div class="works-page-grid">
+              <section class="studio-card" id="books-panel"></section>
+              <section class="studio-card" id="chapters-panel"></section>
+              <section class="studio-card" id="reviews-panel"></section>
+            </div>
+          </section>
+
+          <section class="view-page" id="page-imports" data-page="imports">
+            <section class="studio-card" id="imports-panel"></section>
+          </section>
+
+          <section class="view-page" id="page-genres" data-page="genres">
+            <section class="studio-card" id="genres-panel"></section>
+          </section>
+
+          <section class="view-page" id="page-commands" data-page="commands">
+            <section class="studio-card" id="command-overview"></section>
+            <div class="commands-layout">
+              <aside class="studio-card command-sidebar" id="command-center">
+                <div class="sidebar-head">
+                  <h3 class="card-title">CLI 命令中心</h3>
+                  <p class="card-subtitle">筛选命令后直接填写参数并执行</p>
+                  <input id="command-search" type="search" placeholder="搜索命令、path 或说明" />
+                </div>
+                <div class="command-groups" id="command-groups"></div>
+              </aside>
+              <section class="studio-card command-panel" id="command-panel"></section>
+            </div>
+            <div class="console-layout">
+              <section class="studio-card output-panel" id="output-panel"></section>
+              <aside class="studio-card results-sidebar" id="results-sidebar"></aside>
+            </div>
+          </section>
+
+          <section class="view-page" id="page-agent" data-page="agent">
+            <section class="studio-card" id="agent-panel"></section>
+          </section>
+
+          <section class="view-page" id="page-aigc" data-page="aigc">
+            <section class="studio-card" id="aigc-panel"></section>
+          </section>
+
+          <section class="view-page" id="page-settings" data-page="settings">
+            <section class="studio-card" id="settings-panel"></section>
+          </section>
+        </main>
+      </div>
     </div>
     <script type="module" src="/app.js"></script>
   </body>
-  </html>
+</html>
