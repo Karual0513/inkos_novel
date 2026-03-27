@@ -112,8 +112,11 @@ const state = {
 
 const refs = {
   pageNav: document.querySelector("#page-nav"),
+  pageBreadcrumb: document.querySelector("#page-breadcrumb"),
   pageTitle: document.querySelector("#page-title"),
   pageDescription: document.querySelector("#page-description"),
+  topModuleTabs: document.querySelector("#top-module-tabs"),
+  workspaceInspector: document.querySelector("#workspace-inspector"),
   overviewPanel: document.querySelector("#overview-panel"),
   worksOverview: document.querySelector("#works-overview"),
   editorContextPanel: document.querySelector("#editor-context-panel"),
@@ -290,6 +293,20 @@ function bindEvents() {
     state.search = event.target.value.trim().toLowerCase();
     renderCommandGroups();
     renderCommandOverview();
+    renderWorkspaceInspector();
+  });
+
+  refs.workspaceInspector?.addEventListener("click", (event) => {
+    const commandButton = event.target.closest("button[data-command-path]");
+    if (commandButton) {
+      openCommand(commandButton.dataset.commandPath, buildPrefillFromDataset(commandButton.dataset));
+      return;
+    }
+
+    const pageButton = event.target.closest("button[data-page]");
+    if (pageButton) {
+      setCurrentPage(pageButton.dataset.page);
+    }
   });
 
   for (const panel of [refs.overviewPanel, refs.editorContextPanel, refs.commandOverview, refs.importsPanel, refs.genresPanel, refs.agentPanel, refs.aigcPanel, refs.settingsPanel]) {
@@ -1077,6 +1094,8 @@ function renderEditorMeta() {
     <span class="badge">${formatNumber(estimateWordCountFromText(state.editorContent || chapter.content))} 字</span>
     <span class="badge ${state.editorDirty ? "warning" : "success"}">${state.editorDirty ? "有未保存修改" : "已同步"}</span>
   `;
+
+  renderWorkspaceInspector();
 }
 
 function renderOutputPanel() {
@@ -1124,6 +1143,7 @@ function renderOutputPanel() {
   `;
 
   renderResultsSidebar();
+  renderWorkspaceInspector();
 }
 
 function renderExecutionContent(execution) {
@@ -1651,6 +1671,7 @@ function openCommand(commandPath, prefill = {}) {
   renderCommandGroups();
   renderCommandPanel();
   renderCommandOverview();
+  renderWorkspaceInspector();
   setCurrentPage("commands");
 }
 
@@ -1750,6 +1771,37 @@ function renderToolbarSummary() {
     .join("");
 }
 
+function getPageBadgeValue(page) {
+  if (page === "overview") {
+    return String(state.dashboard?.totals?.books ?? 0);
+  }
+  if (page === "editor") {
+    return state.activeChapter ? `第${state.activeChapter.chapter}章` : "未开章";
+  }
+  if (page === "works") {
+    return String(state.dashboard?.pendingReviews?.length ?? 0);
+  }
+  if (page === "imports") {
+    return "4";
+  }
+  if (page === "genres") {
+    return String(new Set((state.dashboard?.books ?? []).map((book) => book.genre)).size);
+  }
+  if (page === "commands") {
+    return String(state.commands.length);
+  }
+  if (page === "agent") {
+    return String(state.history.filter((item) => item.commandPath === "agent").length);
+  }
+  if (page === "aigc") {
+    return String(getAigcRiskEntries().length);
+  }
+  if (page === "settings") {
+    return state.meta?.cliBuilt ? "OK" : "!";
+  }
+  return "--";
+}
+
 function renderCommandShortcuts(command) {
   const items = [
     {
@@ -1838,17 +1890,7 @@ function renderPageNav() {
     return;
   }
 
-  const pages = [
-    { key: "overview", badge: String(state.dashboard?.totals?.books ?? 0) },
-    { key: "editor", badge: state.activeChapter ? `第${state.activeChapter.chapter}章` : "未开章" },
-    { key: "works", badge: String(state.dashboard?.pendingReviews?.length ?? 0) },
-    { key: "imports", badge: "4" },
-    { key: "genres", badge: String(new Set((state.dashboard?.books ?? []).map((book) => book.genre)).size) },
-    { key: "commands", badge: String(state.commands.length) },
-    { key: "agent", badge: String(state.history.filter((item) => item.commandPath === "agent").length) },
-    { key: "aigc", badge: String(getAigcRiskEntries().length) },
-    { key: "settings", badge: state.meta?.cliBuilt ? "OK" : "!" },
-  ];
+  const pages = Object.keys(PAGE_DEFINITIONS).map((key) => ({ key, badge: getPageBadgeValue(key) }));
 
   refs.pageNav.innerHTML = pages
     .map(({ key, badge }) => {
@@ -1866,16 +1908,150 @@ function renderPageNav() {
     .join("");
 
   renderCurrentPageMeta();
+  renderTopModuleTabs();
+  renderWorkspaceInspector();
 }
 
 function renderCurrentPageMeta() {
   const page = PAGE_DEFINITIONS[state.currentPage] ?? PAGE_DEFINITIONS.overview;
+  const selectedBook = getSelectedBook();
   if (refs.pageTitle) {
     refs.pageTitle.textContent = page.label;
   }
   if (refs.pageDescription) {
     refs.pageDescription.textContent = page.description;
   }
+  if (refs.pageBreadcrumb) {
+    refs.pageBreadcrumb.innerHTML = `
+      <span>InkOS Studio</span>
+      <span>/</span>
+      <strong>${escapeHtml(page.label)}</strong>
+      ${selectedBook ? `<span>/</span><span>${escapeHtml(selectedBook.title)}</span>` : ""}
+    `;
+  }
+}
+
+function renderTopModuleTabs() {
+  if (!refs.topModuleTabs) {
+    return;
+  }
+
+  refs.topModuleTabs.innerHTML = Object.entries(PAGE_DEFINITIONS)
+    .map(([key, page]) => `
+      <a class="module-tab ${state.currentPage === key ? "active" : ""}" href="${page.hash}">
+        <strong>${escapeHtml(page.label)}</strong>
+        <small>${escapeHtml(getPageBadgeValue(key))}</small>
+      </a>
+    `)
+    .join("");
+}
+
+function renderWorkspaceInspector() {
+  if (!refs.workspaceInspector) {
+    return;
+  }
+
+  const selectedBook = getSelectedBook();
+  const chapter = state.activeChapter;
+  const latest = state.history[0];
+  const pendingReviews = state.dashboard?.pendingReviews?.length ?? 0;
+  const riskCount = getAigcRiskEntries().length;
+  const selectedCommand = getSelectedCommand();
+  const currentPage = PAGE_DEFINITIONS[state.currentPage] ?? PAGE_DEFINITIONS.overview;
+  const quickPages = ["overview", "works", "commands", "settings"].filter((page) => page !== state.currentPage);
+
+  refs.workspaceInspector.innerHTML = `
+    <div class="inspector-stack">
+      <section class="inspector-card inspector-card-focus">
+        <div class="inspector-head">
+          <div>
+            <p class="section-kicker">Current Focus</p>
+            <h3>当前工作焦点</h3>
+          </div>
+          <span class="badge active">${escapeHtml(currentPage.label)}</span>
+        </div>
+        <ul class="plain-list compact-list">
+          <li><span>上下文</span><strong>${escapeHtml(state.selectedContext || ".")}</strong></li>
+          <li><span>当前书籍</span><strong>${escapeHtml(selectedBook?.title ?? "未选择")}</strong></li>
+          <li><span>当前章节</span><strong>${chapter ? `第 ${chapter.chapter} 章` : "未打开"}</strong></li>
+          <li><span>选中命令</span><strong>${escapeHtml(selectedCommand?.uiLabel ?? "未选择")}</strong></li>
+        </ul>
+      </section>
+
+      <section class="inspector-card">
+        <div class="inspector-head">
+          <div>
+            <p class="section-kicker">Project Snapshot</p>
+            <h3>项目快照</h3>
+          </div>
+        </div>
+        <div class="inspector-metrics">
+          <article>
+            <span>待审</span>
+            <strong>${pendingReviews}</strong>
+          </article>
+          <article>
+            <span>风险</span>
+            <strong>${riskCount}</strong>
+          </article>
+          <article>
+            <span>命令</span>
+            <strong>${state.commands.length}</strong>
+          </article>
+          <article>
+            <span>历史</span>
+            <strong>${state.history.length}</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="inspector-card">
+        <div class="inspector-head">
+          <div>
+            <p class="section-kicker">Quick Switch</p>
+            <h3>快速切换</h3>
+          </div>
+        </div>
+        <div class="inspector-actions">
+          ${quickPages.map((page) => `<button class="secondary page-switch-btn" data-page="${escapeAttribute(page)}">${escapeHtml(PAGE_DEFINITIONS[page].label)}</button>`).join("")}
+        </div>
+      </section>
+
+      <section class="inspector-card">
+        <div class="inspector-head">
+          <div>
+            <p class="section-kicker">Quick Commands</p>
+            <h3>快捷命令</h3>
+          </div>
+        </div>
+        <div class="inspector-actions">
+          <button class="ghost" data-command-path="status">项目状态</button>
+          <button class="ghost" data-command-path="review list">待审列表</button>
+          <button class="ghost" data-command-path="doctor">环境诊断</button>
+          <button class="ghost" data-command-path="write next" ${selectedBook ? `data-book-id="${escapeAttribute(selectedBook.id)}"` : "disabled"}>续写下一章</button>
+        </div>
+      </section>
+
+      <section class="inspector-card">
+        <div class="inspector-head">
+          <div>
+            <p class="section-kicker">Recent Activity</p>
+            <h3>最近动作</h3>
+          </div>
+        </div>
+        ${latest ? `
+          <div class="inspector-activity">
+            <strong>${escapeHtml(getCommandDisplayName(latest.commandPath))}</strong>
+            <p class="muted">${escapeHtml(latest.contextPath || state.selectedContext || ".")}</p>
+            <div class="workspace-facts">
+              <span class="status-chip ${latest.ok ? "active" : ""}">${escapeHtml(getHistoryOutcomeLabel(latest))}</span>
+              <span class="status-chip ${state.editorDirty ? "active" : ""}">${state.editorDirty ? "正文未保存" : "正文已同步"}</span>
+            </div>
+          </div>
+        ` : `<div class="empty-state tiny"><p>还没有执行记录。</p></div>`}
+      </section>
+    </div>
+  `;
 }
 
 function renderPageJumpLinks(currentPage) {
@@ -2033,6 +2209,8 @@ function renderWorksOverview() {
       </div>
     </div>
   `;
+
+  renderWorkspaceInspector();
 }
 
 function renderOverviewPanel() {
@@ -2174,6 +2352,8 @@ function renderEditorContextPanel() {
       <div class="empty-state"><p>先去作品管理页选择一本书，或在命令中心执行 status / book create。</p></div>
     `}
   `;
+
+  renderWorkspaceInspector();
 }
 
 function renderImportsPanel() {

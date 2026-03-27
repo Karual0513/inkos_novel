@@ -155,6 +155,37 @@ inkos detect 吞天魔帝 --all               # 全书 AIGC 检测
 inkos detect --stats                      # 检测统计
 ```
 
+`inkos detect` 不是开箱即用功能。它依赖外部 AIGC 检测 API，需要先在项目 `inkos.json` 里配置 `detection`，再在 `.env` 或系统环境变量里提供对应 API Key。
+
+最小可用配置示例：
+
+```json
+{
+  "detection": {
+    "enabled": true,
+    "provider": "custom",
+    "apiUrl": "https://your-detection-api.example.com/v1/detect",
+    "apiKeyEnv": "INKOS_DETECTION_API_KEY",
+    "threshold": 0.5,
+    "autoRewrite": false,
+    "maxRetries": 3
+  }
+}
+```
+
+然后在项目 `.env` 或全局环境变量中加入：
+
+```bash
+INKOS_DETECTION_API_KEY=your-detection-key
+```
+
+说明：
+
+- `provider` 支持 `gptzero`、`originality`、`custom`
+- `apiUrl` 必须填对应服务的检测接口地址
+- `apiKeyEnv` 不是明文 Key，而是“去哪个环境变量里取 Key”的变量名
+- `inkos detect --stats` 只读取历史记录，不要求开启 detection
+
 ### Webhook + 智能调度
 
 管线事件 POST JSON 到配置 URL（HMAC-SHA256 签名），支持事件过滤（`chapter-complete`、`audit-failed`、`pipeline-error` 等）。守护进程增加质量门控：审计失败自动重试（调高 temperature）、连续失败暂停书籍。
@@ -439,6 +470,13 @@ INKOS_LLM_MODEL=gpt-4o                            # 模型名
 ```
 
 项目 `.env` 会覆盖全局配置。不需要覆盖时可以不写。
+
+如果要启用 `inkos detect`，还需要额外加入检测服务的 Key：
+
+```bash
+# 可选：仅当启用 inkos.json 中的 detection.enabled=true 时需要
+# INKOS_DETECTION_API_KEY=your-detection-key
+```
 
 ### 使用
 

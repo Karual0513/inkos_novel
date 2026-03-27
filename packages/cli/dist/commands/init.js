@@ -30,6 +30,15 @@ export const initCommand = new Command("init")
                 model: process.env.INKOS_LLM_MODEL ?? "gpt-4o",
             },
             notify: [],
+            detection: {
+                enabled: false,
+                provider: "custom",
+                apiUrl: "https://your-detection-api.example.com/v1/detect",
+                apiKeyEnv: "INKOS_DETECTION_API_KEY",
+                threshold: 0.5,
+                autoRewrite: false,
+                maxRetries: 3,
+            },
             daemon: {
                 schedule: {
                     radarCron: "0 */6 * * *",
@@ -49,6 +58,8 @@ export const initCommand = new Command("init")
                 "# INKOS_LLM_BASE_URL=https://api.openai.com/v1",
                 "# INKOS_LLM_API_KEY=your-api-key-here",
                 "# INKOS_LLM_MODEL=gpt-4o",
+                "# Detection override example:",
+                "# INKOS_DETECTION_API_KEY=your-detection-key-here",
             ].join("\n"), "utf-8");
         }
         else {
@@ -66,6 +77,9 @@ export const initCommand = new Command("init")
                 "# INKOS_LLM_MAX_TOKENS=8192",
                 "# INKOS_LLM_THINKING_BUDGET=0          # Anthropic extended thinking budget",
                 "# INKOS_LLM_API_FORMAT=chat             # chat (default) or responses (OpenAI Responses API)",
+                "",
+                "# Detection API example (used by 'inkos detect' when detection.enabled=true in inkos.json):",
+                "# INKOS_DETECTION_API_KEY=your-detection-key-here",
                 "",
                 "# Anthropic example:",
                 "# INKOS_LLM_PROVIDER=anthropic",
@@ -94,6 +108,7 @@ export const initCommand = new Command("init")
             log("");
             log("  inkos book create --title '我的小说' --genre xuanhuan --platform tomato");
         }
+        log("  # Optional: enable AIGC detection by editing inkos.json -> detection and setting INKOS_DETECTION_API_KEY");
         log("  inkos write next <book-id>");
     }
     catch (e) {

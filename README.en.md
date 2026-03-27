@@ -140,6 +140,37 @@ inkos detect my-book --all                  # Detect all chapters
 inkos detect --stats                        # Detection statistics
 ```
 
+`inkos detect` is not zero-config. It relies on an external AIGC detection API, so you must configure `detection` in your project's `inkos.json` and provide the matching API key via `.env` or your shell environment.
+
+Minimal working example:
+
+```json
+{
+  "detection": {
+    "enabled": true,
+    "provider": "custom",
+    "apiUrl": "https://your-detection-api.example.com/v1/detect",
+    "apiKeyEnv": "INKOS_DETECTION_API_KEY",
+    "threshold": 0.5,
+    "autoRewrite": false,
+    "maxRetries": 3
+  }
+}
+```
+
+Then add this to your project `.env` or shell environment:
+
+```bash
+INKOS_DETECTION_API_KEY=your-detection-key
+```
+
+Notes:
+
+- `provider` supports `gptzero`, `originality`, and `custom`
+- `apiUrl` must point to the actual detection endpoint for that provider
+- `apiKeyEnv` is the name of the environment variable that stores the real API key
+- `inkos detect --stats` only reads local history and does not require detection to be enabled
+
 ### Webhook + Smart Scheduler
 
 Pipeline events POST JSON to configured URLs (HMAC-SHA256 signed), with event filtering (`chapter-complete`, `audit-failed`, `pipeline-error`, etc.). Daemon mode adds quality gates: auto-retry on audit failure (with temperature ramp), pause book after consecutive failures.
@@ -424,6 +455,13 @@ INKOS_LLM_MODEL=gpt-4o                            # Model name
 ```
 
 Project `.env` overrides global config. Skip it if no override needed.
+
+If you want to use `inkos detect`, add a detection API key as well:
+
+```bash
+# Optional: only needed when detection.enabled=true in inkos.json
+# INKOS_DETECTION_API_KEY=your-detection-key
+```
 
 ### Usage
 

@@ -25,7 +25,8 @@ describe("detectAIContent", () => {
     it("calls custom API with correct headers and body", async () => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
-            json: async () => ({ score: 0.75 }),
+            text: async () => JSON.stringify({ score: 0.75 }),
+            headers: { get: () => "application/json" },
         });
         const result = await detectAIContent(baseConfig, "test content");
         expect(mockFetch).toHaveBeenCalledOnce();
@@ -38,9 +39,10 @@ describe("detectAIContent", () => {
     it("handles GPTZero provider format", async () => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
-            json: async () => ({
+            text: async () => JSON.stringify({
                 documents: [{ completely_generated_prob: 0.92 }],
             }),
+            headers: { get: () => "application/json" },
         });
         const gptzeroConfig = { ...baseConfig, provider: "gptzero" };
         const result = await detectAIContent(gptzeroConfig, "test content");
@@ -50,9 +52,10 @@ describe("detectAIContent", () => {
     it("handles Originality provider format", async () => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
-            json: async () => ({
+            text: async () => JSON.stringify({
                 score: { ai: 0.3, original: 0.7 },
             }),
+            headers: { get: () => "application/json" },
         });
         const origConfig = { ...baseConfig, provider: "originality" };
         const result = await detectAIContent(origConfig, "test content");
@@ -66,6 +69,14 @@ describe("detectAIContent", () => {
             text: async () => "Rate limited",
         });
         await expect(detectAIContent(baseConfig, "test")).rejects.toThrow("Detection API failed: 429");
+    });
+    it("throws a clear error when endpoint returns HTML instead of JSON", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            text: async () => "<!doctype html><html><body>Not an API</body></html>",
+            headers: { get: () => "text/html; charset=utf-8" },
+        });
+        await expect(detectAIContent(baseConfig, "test")).rejects.toThrow("returned non-JSON content");
     });
 });
 //# sourceMappingURL=detector.test.js.map

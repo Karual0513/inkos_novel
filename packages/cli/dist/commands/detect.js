@@ -12,26 +12,11 @@ export const detectCommand = new Command("detect")
     .option("--json", "Output JSON")
     .action(async (bookIdArg, chapterStr, opts) => {
     try {
-        const config = await loadConfig();
         const root = findProjectRoot();
-        if (!config.detection?.enabled) {
-            logError("AIGC detection is not enabled. Add detection config to inkos.json.");
-            process.exit(1);
-        }
-        // If first arg looks like a number, treat it as chapter
-        let bookId;
-        let chapterNumber;
-        if (bookIdArg && /^\d+$/.test(bookIdArg)) {
-            bookId = await resolveBookId(undefined, root);
-            chapterNumber = parseInt(bookIdArg, 10);
-        }
-        else {
-            bookId = await resolveBookId(bookIdArg, root);
-            chapterNumber = chapterStr ? parseInt(chapterStr, 10) : undefined;
-        }
-        const state = new StateManager(root);
-        const bookDir = state.bookDir(bookId);
         if (opts.stats) {
+            const bookId = await resolveBookId(bookIdArg, root);
+            const state = new StateManager(root);
+            const bookDir = state.bookDir(bookId);
             const history = await loadDetectionHistory(bookDir);
             const stats = analyzeDetectionInsights(history);
             if (opts.json) {
@@ -54,6 +39,24 @@ export const detectCommand = new Command("detect")
             }
             return;
         }
+        const config = await loadConfig({ requireLlmApiKey: false });
+        if (!config.detection?.enabled) {
+            logError("AIGC detection is not enabled. Set detection.enabled=true in inkos.json, configure detection.apiUrl / detection.apiKeyEnv, then add the matching API key to your .env or shell environment.");
+            process.exit(1);
+        }
+        // If first arg looks like a number, treat it as chapter
+        let bookId;
+        let chapterNumber;
+        if (bookIdArg && /^\d+$/.test(bookIdArg)) {
+            bookId = await resolveBookId(undefined, root);
+            chapterNumber = parseInt(bookIdArg, 10);
+        }
+        else {
+            bookId = await resolveBookId(bookIdArg, root);
+            chapterNumber = chapterStr ? parseInt(chapterStr, 10) : undefined;
+        }
+        const state = new StateManager(root);
+        const bookDir = state.bookDir(bookId);
         const detectionConfig = config.detection;
         if (opts.all) {
             const index = await state.loadChapterIndex(bookId);

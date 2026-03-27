@@ -6,7 +6,9 @@ export declare function resolveContext(opts: {
     readonly contextFile?: string;
 }): Promise<string | undefined>;
 export declare function findProjectRoot(): string;
-export declare function loadConfig(): Promise<ProjectConfig>;
+export declare function loadConfig(options?: {
+    readonly requireLlmApiKey?: boolean;
+}): Promise<ProjectConfig>;
 export declare function createClient(config: ProjectConfig): import("@actalk/inkos-core").LLMClient;
 export declare function log(message: string): void;
 export declare function logError(message: string): void;

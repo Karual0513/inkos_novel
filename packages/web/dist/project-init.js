@@ -14,6 +14,15 @@ export async function initializeProjectAt(projectDir) {
             model: process.env.INKOS_LLM_MODEL ?? "gpt-4o",
         },
         notify: [],
+        detection: {
+            enabled: false,
+            provider: "custom",
+            apiUrl: "https://your-detection-api.example.com/v1/detect",
+            apiKeyEnv: "INKOS_DETECTION_API_KEY",
+            threshold: 0.5,
+            autoRewrite: false,
+            maxRetries: 3,
+        },
         daemon: {
             schedule: {
                 radarCron: "0 */6 * * *",
@@ -37,6 +46,9 @@ export async function initializeProjectAt(projectDir) {
         "# INKOS_LLM_MAX_TOKENS=8192",
         "# INKOS_LLM_THINKING_BUDGET=0",
         "# INKOS_LLM_API_FORMAT=chat",
+        "",
+        "# Detection API example (used by 'inkos detect' when detection.enabled=true in inkos.json):",
+        "# INKOS_DETECTION_API_KEY=your-detection-key-here",
     ].join("\n"), "utf-8");
     await writeFile(join(projectDir, ".gitignore"), [".env", "node_modules/", ".DS_Store"].join("\n"), "utf-8");
     return {

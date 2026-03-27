@@ -78,6 +78,9 @@ describe("CLI integration", () => {
       expect(config.llm).toBeDefined();
       expect(config.llm.provider).toBe("openai");
       expect(config.llm.model).toBe("gpt-4o");
+      expect(config.detection).toBeDefined();
+      expect(config.detection.enabled).toBe(false);
+      expect(config.detection.apiKeyEnv).toBe("INKOS_DETECTION_API_KEY");
       expect(config.daemon).toBeDefined();
       expect(config.notify).toEqual([]);
     });

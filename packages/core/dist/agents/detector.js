@@ -21,6 +21,17 @@ export async function detectAIContent(config, content) {
             return detectCustom(config.apiUrl, apiKey, content, detectedAt);
     }
 }
+async function parseJsonResponse(response, providerLabel) {
+    const rawBody = await response.text();
+    const contentType = response.headers.get("content-type") ?? "unknown";
+    try {
+        return JSON.parse(rawBody);
+    }
+    catch {
+        const snippet = rawBody.slice(0, 160).replace(/\s+/g, " ").trim();
+        throw new Error(`${providerLabel} returned non-JSON content (content-type: ${contentType}). This usually means detection.apiUrl points to a web page or wrong route instead of a JSON API endpoint. Response starts with: ${snippet || "(empty)"}`);
+    }
+}
 async function detectGPTZero(apiUrl, apiKey, content, detectedAt) {
     const response = await fetch(apiUrl, {
         method: "POST",
@@ -34,7 +45,7 @@ async function detectGPTZero(apiUrl, apiKey, content, detectedAt) {
         const body = await response.text();
         throw new Error(`GPTZero API failed: ${response.status} ${body}`);
     }
-    const data = await response.json();
+    const data = await parseJsonResponse(response, "GPTZero API");
     const documents = data.documents;
     const score = documents?.[0]?.completely_generated_prob ?? 0;
     return { score, provider: "gptzero", detectedAt, raw: data };
@@ -52,7 +63,7 @@ async function detectOriginality(apiUrl, apiKey, content, detectedAt) {
         const body = await response.text();
         throw new Error(`Originality API failed: ${response.status} ${body}`);
     }
-    const data = await response.json();
+    const data = await parseJsonResponse(response, "Originality API");
     const score = data.score?.ai ?? 0;
     return { score, provider: "originality", detectedAt, raw: data };
 }
@@ -69,7 +80,7 @@ async function detectCustom(apiUrl, apiKey, content, detectedAt) {
         const body = await response.text();
         throw new Error(`Detection API failed: ${response.status} ${body}`);
     }
-    const data = await response.json();
+    const data = await parseJsonResponse(response, "Detection API");
     // Custom endpoint must return { score: number } at minimum
     const score = typeof data.score === "number" ? data.score : 0;
     return { score, provider: "custom", detectedAt, raw: data };

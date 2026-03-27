@@ -39,6 +39,23 @@ export async function detectAIContent(
   }
 }
 
+async function parseJsonResponse(
+  response: Response,
+  providerLabel: string,
+): Promise<Record<string, unknown>> {
+  const rawBody = await response.text();
+  const contentType = response.headers.get("content-type") ?? "unknown";
+
+  try {
+    return JSON.parse(rawBody) as Record<string, unknown>;
+  } catch {
+    const snippet = rawBody.slice(0, 160).replace(/\s+/g, " ").trim();
+    throw new Error(
+      `${providerLabel} returned non-JSON content (content-type: ${contentType}). This usually means detection.apiUrl points to a web page or wrong route instead of a JSON API endpoint. Response starts with: ${snippet || "(empty)"}`,
+    );
+  }
+}
+
 async function detectGPTZero(
   apiUrl: string,
   apiKey: string,
@@ -59,7 +76,7 @@ async function detectGPTZero(
     throw new Error(`GPTZero API failed: ${response.status} ${body}`);
   }
 
-  const data = await response.json() as Record<string, unknown>;
+  const data = await parseJsonResponse(response, "GPTZero API");
   const documents = data.documents as Array<Record<string, unknown>> | undefined;
   const score = documents?.[0]?.completely_generated_prob as number ?? 0;
 
@@ -86,7 +103,7 @@ async function detectOriginality(
     throw new Error(`Originality API failed: ${response.status} ${body}`);
   }
 
-  const data = await response.json() as Record<string, unknown>;
+  const data = await parseJsonResponse(response, "Originality API");
   const score = (data.score as Record<string, unknown>)?.ai as number ?? 0;
 
   return { score, provider: "originality", detectedAt, raw: data };
@@ -112,7 +129,7 @@ async function detectCustom(
     throw new Error(`Detection API failed: ${response.status} ${body}`);
   }
 
-  const data = await response.json() as Record<string, unknown>;
+  const data = await parseJsonResponse(response, "Detection API");
   // Custom endpoint must return { score: number } at minimum
   const score = typeof data.score === "number" ? data.score : 0;
 

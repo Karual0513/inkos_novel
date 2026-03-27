@@ -31,8 +31,11 @@ export function findProjectRoot(): string {
   return process.cwd();
 }
 
-export async function loadConfig(): Promise<ProjectConfig> {
+export async function loadConfig(options: {
+  readonly requireLlmApiKey?: boolean;
+} = {}): Promise<ProjectConfig> {
   const root = findProjectRoot();
+  const requireLlmApiKey = options.requireLlmApiKey ?? true;
 
   // Load global ~/.inkos/.env first, then project .env overrides
   loadEnv({ path: GLOBAL_ENV_PATH });
@@ -73,12 +76,13 @@ export async function loadConfig(): Promise<ProjectConfig> {
 
   // API key ONLY from env — never stored in inkos.json
   const apiKey = env.INKOS_LLM_API_KEY;
-  if (!apiKey) {
+  if (apiKey) {
+    llm.apiKey = apiKey;
+  } else if (requireLlmApiKey) {
     throw new Error(
       "INKOS_LLM_API_KEY not set. Run 'inkos config set-global' or add it to project .env file.",
     );
   }
-  llm.apiKey = apiKey;
 
   return ProjectConfigSchema.parse(config);
 }
